@@ -1912,7 +1912,6 @@
         const CLOUDINARY_UPLOAD_URL =
             `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
 
-        // Delete token endpoint
         const CLOUDINARY_DELETE_TOKEN_URL =
             `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/delete_by_token`;
 
@@ -2307,35 +2306,30 @@
         }
 
         // ============================================================
-        // FILE MANAGEMENT
+        // FILE MANAGEMENT — FIRESTORE AS SOURCE OF TRUTH
         // ============================================================
         function getUserFilesRef() {
             if (!currentUser) return null;
             return db.collection('users').doc(currentUser.uid).collection('files');
         }
 
+        // Load all files from Firestore (no local merging)
         async function loadFiles() {
             if (!currentUser) return;
             try {
                 const snapshot = await getUserFilesRef().orderBy('uploadDate', 'desc').get();
-                const firestoreFiles = [];
-                snapshot.forEach(doc => { firestoreFiles.push({ id: doc.id, ...doc.data() }); });
-                const localFiles = allFiles.filter(f => f._local === true && !f._deleted);
-                const ids = new Set(firestoreFiles.map(f => f.id));
-                const merged = [...firestoreFiles, ...localFiles.filter(f => !ids.has(f.id))];
-                merged.sort((a, b) => {
-                    const da = a.uploadDate ? (a.uploadDate.toDate ? a.uploadDate.toDate() : new Date(a
-                        .uploadDate)) : new Date(0);
-                    const db = b.uploadDate ? (b.uploadDate.toDate ? b.uploadDate.toDate() : new Date(b
-                        .uploadDate)) : new Date(0);
-                    return db - da;
-                });
-                allFiles = merged;
+                const files = [];
+                snapshot.forEach(doc => { files.push({ id: doc.id, ...doc.data() }); });
+                allFiles = files;
                 renderAll();
-            } catch (err) { console.error('Load files error:', err);
-                renderAll(); }
+            } catch (err) {
+                console.error('Load files error:', err);
+                allFiles = [];
+                renderAll();
+            }
         }
 
+        // Add a new file to Firestore
         async function addFileMetadata(data) {
             if (!currentUser) return null;
             try {
@@ -2343,67 +2337,88 @@
                 const docRef = await ref.add({ ...data, uploadDate: firebase.firestore.FieldValue.serverTimestamp(),
                     userId: currentUser.uid });
                 return docRef.id;
-            } catch (err) { console.error('Add file error:', err); return null; }
+            } catch (err) {
+                console.error('Add file error:', err);
+                return null;
+            }
         }
 
+        // Update a file in Firestore
         async function updateFileMetadata(id, data) {
             if (!currentUser) return;
-            try { await getUserFilesRef().doc(id).update(data); } catch (err) { console.error('Update error:', err);
-                showToast('فشل حفظ الملف', 'error'); }
+            try {
+                await getUserFilesRef().doc(id).update(data);
+            } catch (err) {
+                console.error('Update error:', err);
+                throw err;
+            }
         }
 
+        // Soft delete (move to trash)
         async function deleteFileMetadata(id, permanent = false) {
             if (!currentUser) return;
             try {
                 const ref = getUserFilesRef().doc(id);
-                if (permanent) { await ref.delete(); } else { await ref.update({ isTrashed: true,
-                        trashedAt: firebase.firestore.FieldValue.serverTimestamp() }); }
-            } catch (err) { console.error('Delete error:', err);
-                showToast('فشل حذف الملف', 'error'); }
+                if (permanent) {
+                    await ref.delete();
+                } else {
+                    await ref.update({ isTrashed: true, trashedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                }
+            } catch (err) {
+                console.error('Delete error:', err);
+                throw err;
+            }
         }
 
+        // Restore from trash
         async function restoreFile(id) {
             if (!currentUser) return;
-            try { await getUserFilesRef().doc(id).update({ isTrashed: false, trashedAt: null });
-                showToast('تم استعادة الملف', 'success'); } catch (err) { console.error('Restore error:', err);
-                showToast('فشل استعادة الملف', 'error'); }
+            try {
+                await getUserFilesRef().doc(id).update({ isTrashed: false, trashedAt: null });
+                showToast('تم استعادة الملف', 'success');
+            } catch (err) {
+                console.error('Restore error:', err);
+                showToast('فشل استعادة الملف', 'error');
+            }
         }
 
+        // Toggle favorite
         async function toggleFavorite(id) {
             if (!currentUser) return;
             try {
-                const ref = getUserFilesRef().doc(id);
-                const doc = await ref.get();
-                if (doc.exists) { await ref.update({ isFavorite: !(doc.data().isFavorite || false) }); }
-            } catch (err) { console.error('Favorite error:', err);
-                showToast('فشل تحديث المفضلة', 'error'); }
+                const doc = await getUserFilesRef().doc(id).get();
+                if (doc.exists) {
+                    const current = doc.data().isFavorite || false;
+                    await getUserFilesRef().doc(id).update({ isFavorite: !current });
+                }
+            } catch (err) {
+                console.error('Favorite error:', err);
+                showToast('فشل تحديث المفضلة', 'error');
+            }
         }
 
+        // Rename
         async function renameFile(id, newName) {
             if (!currentUser) return;
-            try { await getUserFilesRef().doc(id).update({ name: newName });
-                showToast('تم إعادة تسمية الملف بنجاح', 'success'); } catch (err) { console.error('Rename error:', err);
-                showToast('فشل إعادة تسمية الملف', 'error'); throw err; }
+            try {
+                await getUserFilesRef().doc(id).update({ name: newName });
+                showToast('تم إعادة تسمية الملف بنجاح', 'success');
+            } catch (err) {
+                console.error('Rename error:', err);
+                showToast('فشل إعادة تسمية الملف', 'error');
+                throw err;
+            }
         }
 
-        // PERMANENT DELETE: remove from Cloudinary then from Firestore
+        // Permanent delete: delete from Cloudinary and Firestore
         async function deletePermanently(id) {
             if (!currentUser) return;
             try {
-                // Get the file data to retrieve delete token
                 const file = allFiles.find(f => f.id === id);
                 if (file && file.deleteToken) {
-                    const deleted = await deleteFromCloudinary(file.deleteToken);
-                    if (deleted) {
-                        showToast('تم حذف الملف من السحابة', 'success');
-                    } else {
-                        showToast('تم حذف الملف محلياً، لكن فشل حذفه من السحابة', 'warning');
-                    }
-                } else {
-                    // If no delete token, just remove Firestore record (older files)
-                    console.warn('No delete token found for file:', id);
+                    await deleteFromCloudinary(file.deleteToken);
                 }
-                // Always delete Firestore document
+                // Delete from Firestore
                 await getUserFilesRef().doc(id).delete();
                 // Remove from local array
                 allFiles = allFiles.filter(f => f.id !== id);
@@ -2412,6 +2427,10 @@
             } catch (err) {
                 console.error('Permanent delete error:', err);
                 showToast('فشل حذف الملف نهائياً: ' + err.message, 'error');
+                // Still try to remove from Firestore
+                try { await getUserFilesRef().doc(id).delete(); } catch (_) {}
+                allFiles = allFiles.filter(f => f.id !== id);
+                renderAll();
             }
         }
 
@@ -2450,16 +2469,15 @@
             renameSaveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...`;
             renameError.classList.remove('show');
             try {
-                const file = allFiles.find(f => f.id === renameFileId);
-                if (file) { file.name = newName;
-                    renderAll(); }
                 await renameFile(renameFileId, newName);
+                // Update local array
+                const file = allFiles.find(f => f.id === renameFileId);
+                if (file) file.name = newName;
                 closeRenameModal();
+                renderAll();
+                // Reload from Firestore to be safe
                 await loadFiles();
             } catch (err) {
-                const file = allFiles.find(f => f.id === renameFileId);
-                if (file) { file.name = renameCurrentName;
-                    renderAll(); }
                 renameSaveBtn.disabled = false;
                 renameSaveBtn.innerHTML = `<i class="fas fa-check"></i> حفظ`;
             }
@@ -2509,7 +2527,7 @@
         }
 
         function getFilteredFiles(view) {
-            let files = [...allFiles].filter(f => !f._deleted);
+            let files = [...allFiles];
             switch (view) {
                 case 'home':
                     files = files.filter(f => !f.isTrashed);
@@ -2572,13 +2590,12 @@
                 else if (isPdf && file.url) previewHtml =
                     `<embed src="${safeUrl}" type="application/pdf" class="file-preview" style="aspect-ratio:16/10;" />`;
                 const isFav = file.isFavorite === true;
-                const isLocal = file._local === true;
                 const isTrashed = file.isTrashed === true;
 
                 if (viewMode === 'list') {
                     card.innerHTML = `
                         ${previewHtml ? `<div class="file-preview" style="width:40px;height:40px;aspect-ratio:1;flex-shrink:0;border-radius:var(--md-radius-xs);overflow:hidden;">${previewHtml}</div>` : `<span class="file-icon"><i class="fas ${iconClass}"></i></span>`}
-                        <div class="file-info"><div class="file-name" title="${safeName}">${safeName}${isLocal ? ' <span style="font-size:0.5rem;color:var(--md-text-secondary);">(محلي)</span>' : ''}</div><div class="file-meta">${formatFileSize(file.size || 0)} · ${formatDate(file.uploadDate)}</div></div>
+                        <div class="file-info"><div class="file-name" title="${safeName}">${safeName}</div><div class="file-meta">${formatFileSize(file.size || 0)} · ${formatDate(file.uploadDate)}</div></div>
                         <div class="file-actions">
                             ${file.url ? `<button class="download-btn" data-url="${safeUrl}" data-name="${safeName}" title="تحميل"><i class="fas fa-download"></i></button>` : ''}
                             <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${file.id}" title="المفضلة"><i class="fas fa-star"></i></button>
@@ -2593,7 +2610,7 @@
                 } else {
                     card.innerHTML = `
                         ${previewHtml ? previewHtml : `<span class="file-icon"><i class="fas ${iconClass}"></i></span>`}
-                        <div class="file-name" title="${safeName}">${safeName}${isLocal ? ' <span style="font-size:0.5rem;color:var(--md-text-secondary);">(محلي)</span>' : ''}</div>
+                        <div class="file-name" title="${safeName}">${safeName}</div>
                         <div class="file-meta">${formatFileSize(file.size || 0)}</div>
                         <div class="file-actions">
                             ${file.url ? `<button class="download-btn" data-url="${safeUrl}" data-name="${safeName}" title="تحميل"><i class="fas fa-download"></i></button>` : ''}
@@ -2645,8 +2662,7 @@
                     e.stopPropagation();
                     const id = btn.dataset.id;
                     const file = allFiles.find(f => f.id === id);
-                    if (file) { file.isFavorite = !file.isFavorite;
-                        renderAll(); }
+                    if (file) { file.isFavorite = !file.isFavorite; }
                     toggleFavorite(id);
                     setTimeout(loadFiles, 300);
                 });
@@ -2665,10 +2681,13 @@
                         'نقل', 'إلغاء').then(async (confirmed) => {
                         if (confirmed) {
                             const file = allFiles.find(f => f.id === id);
-                            if (file) { file.isTrashed = true;
-                                renderAll(); }
-                            await deleteFileMetadata(id);
-                            showToast('تم نقل الملف إلى سلة المحذوفات', 'success');
+                            if (file) file.isTrashed = true;
+                            try {
+                                await deleteFileMetadata(id);
+                                showToast('تم نقل الملف إلى سلة المحذوفات', 'success');
+                            } catch (err) {
+                                showToast('فشل نقل الملف', 'error');
+                            }
                             await loadFiles();
                         }
                     });
@@ -2678,9 +2697,6 @@
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const id = btn.dataset.id;
-                    const file = allFiles.find(f => f.id === id);
-                    if (file) { file.isTrashed = false;
-                        renderAll(); }
                     restoreFile(id);
                     setTimeout(loadFiles, 300);
                 });
@@ -2692,10 +2708,8 @@
                     showModal('حذف نهائي', 'سيتم حذف الملف نهائياً من السحابة. هل أنت متأكد؟', 'حذف', 'إلغاء')
                         .then(async (confirmed) => {
                             if (confirmed) {
-                                const file = allFiles.find(f => f.id === id);
-                                if (file) file._deleted = true;
                                 await deletePermanently(id);
-                                renderAll();
+                                await loadFiles();
                             }
                         });
                 });
@@ -2703,7 +2717,7 @@
         }
 
         function renderStats() {
-            const active = allFiles.filter(f => !f.isTrashed && !f._deleted);
+            const active = allFiles.filter(f => !f.isTrashed);
             const images = active.filter(f => f.type === 'image');
             const videos = active.filter(f => f.type === 'video');
             const totalSize = active.reduce((sum, f) => sum + (f.size || 0), 0);
@@ -2729,8 +2743,7 @@
 
         function updateSidebarUser() {
             if (currentUser) {
-                const name = currentUser.displayName || 'مستخدم',
-                    email = currentUser.email || '';
+                const name = currentUser.displayName || 'مستخدم';
                 greetingName.textContent = `مرحباً، ${name}`;
                 if (currentUser.photoURL) {
                     const av = document.querySelector('.profile-avatar-large');
@@ -2767,7 +2780,7 @@
         }
 
         // ============================================================
-        // UPLOAD
+        // UPLOAD — now with Firestore persistence
         // ============================================================
         async function handleUpload(files) {
             if (!currentUser) { showToast('يرجى تسجيل الدخول أولاً', 'error'); return; }
@@ -2775,14 +2788,18 @@
             uploadInProgress = true;
             uploadCancelled = false;
             if (uploadCancelBtn) uploadCancelBtn.classList.remove('hidden');
-            const active = allFiles.filter(f => !f.isTrashed && !f._deleted);
+
+            // Check storage limit
+            const active = allFiles.filter(f => !f.isTrashed);
             const totalSize = active.reduce((sum, f) => sum + (f.size || 0), 0);
+
             let uploaded = 0,
                 failed = 0,
                 total = files.length;
             uploadProgress.classList.add('show');
             uploadStatus.classList.add('show');
             uploadStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري الرفع...`;
+
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 if (uploadCancelled) { showToast('تم إلغاء رفع الملفات المتبقية', 'info'); break; }
@@ -2791,6 +2808,7 @@
                         failed++; continue; }
                     if (totalSize + file.size > STORAGE_LIMIT) { showToast('تم تجاوز حد التخزين (5 جيجابايت)',
                         'error'); break; }
+
                     uploadStatus.textContent = `جاري رفع ${file.name} (${i + 1}/${total})... 0%`;
                     const result = await uploadToCloudinary(file, `zyro/${currentUser.uid}`, (fraction) => {
                         const pct = Math.round(fraction * 100);
@@ -2799,45 +2817,34 @@
                         const overall = ((i + fraction) * perFileShare) * 100;
                         progressBar.style.width = Math.min(100, overall) + '%';
                     });
-                    // Store delete token if available
-                    const deleteToken = result.delete_token || null;
-                    const existing = allFiles.find(f => f.publicId === result.public_id);
-                    if (existing) {
-                        existing.url = result.secure_url;
-                        existing.size = file.size;
-                        existing.mimeType = file.type;
-                        existing.type = getFileType(file.type);
-                        existing.uploadDate = new Date();
-                        existing._local = false;
-                        existing.deleteToken = deleteToken;
-                        try { await updateFileMetadata(existing.id, { url: result.secure_url, size: file.size,
-                                mimeType: file.type, type: getFileType(file.type), deleteToken: deleteToken }); } catch (
-                        _) {}
-                        renderAll();
-                        uploaded++;
-                        continue;
+
+                    // Prepare data for Firestore
+                    const fileData = {
+                        name: file.name,
+                        url: result.secure_url,
+                        publicId: result.public_id,
+                        size: file.size,
+                        mimeType: file.type,
+                        type: getFileType(file.type),
+                        isFavorite: false,
+                        isTrashed: false,
+                        deleteToken: result.delete_token || null,
+                        userId: currentUser.uid
+                    };
+
+                    // Save to Firestore (wait for it)
+                    const docId = await addFileMetadata(fileData);
+                    if (!docId) {
+                        throw new Error('فشل حفظ الملف في قاعدة البيانات');
                     }
-                    const localId = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                    const fileData = { id: localId, name: file.name, url: result.secure_url, publicId: result
-                            .public_id, size: file.size, mimeType: file.type, type: getFileType(file.type),
-                        isFavorite: false, isTrashed: false, uploadDate: new Date(), _local: true,
-                        deleteToken: deleteToken };
-                    allFiles.unshift(fileData);
+
+                    // Add to local array with the correct id
+                    allFiles.unshift({ id: docId, ...fileData, uploadDate: new Date() });
                     renderAll();
                     uploaded++;
                     progressBar.style.width = Math.min(100, ((uploaded + failed) / total) * 100) + '%';
-                    const firestoreData = { name: file.name, url: result.secure_url, publicId: result
-                            .public_id, size: file.size, mimeType: file.type, type: getFileType(file.type),
-                        isFavorite: false, isTrashed: false, deleteToken: deleteToken };
-                    (async () => {
-                        try {
-                            const docId = await addFileMetadata(firestoreData);
-                            if (docId) { const localFile = allFiles.find(f => f.id === localId); if (localFile) { localFile
-                                        .id = docId;
-                                    localFile._local = false;
-                                    renderAll(); } }
-                        } catch (err) { console.error('Firestore save failed:', err); }
-                    })();
+                    totalSize += file.size; // update local total
+
                 } catch (err) {
                     if (err.cancelled) { showToast('تم إلغاء الرفع', 'info'); break; }
                     console.error('Upload error:', err);
@@ -2847,6 +2854,7 @@
                     progressBar.style.width = Math.min(100, ((uploaded + failed) / total) * 100) + '%';
                 }
             }
+
             setTimeout(() => {
                 uploadProgress.classList.remove('show');
                 uploadStatus.classList.remove('show');
@@ -2855,8 +2863,12 @@
                 uploadCancelled = false;
                 if (uploadCancelBtn) uploadCancelBtn.classList.add('hidden');
             }, 800);
-            if (uploaded > 0) { showToast(`تم رفع ${uploaded} ملف(ات) بنجاح`, 'success');
-                await loadFiles(); }
+
+            if (uploaded > 0) {
+                showToast(`تم رفع ${uploaded} ملف(ات) بنجاح`, 'success');
+                // Reload from Firestore to ensure consistency
+                await loadFiles();
+            }
             if (failed > 0) showToast(`فشل رفع ${failed} ملف(ات)`, 'error');
         }
 
@@ -3032,7 +3044,7 @@
             themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
         }
 
-        console.log('☁️ Zyro Cloud — Native Android App with Cloudinary delete support');
+        console.log('☁️ Zyro Cloud — Firestore as source of truth');
         console.log('🔥 Firebase ready | ☁️ Cloudinary ready');
     </script>
 </body>
