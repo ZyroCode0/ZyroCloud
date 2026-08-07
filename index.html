@@ -13,12 +13,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (Auth only) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js">
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js">
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js">
     </script>
 
     <style>
@@ -1895,7 +1893,7 @@
     ============================================================ -->
     <script>
         // ============================================================
-        // CONFIG
+        // CONFIG (Auth only)
         // ============================================================
         const firebaseConfig = {
             apiKey: "AIzaSyAMqpPFdOOtfpFNhqT-heY-Hbdqmpc5udM",
@@ -1919,13 +1917,10 @@
         const STORAGE_LIMIT = 5 * 1024 * 1024 * 1024;
 
         // ============================================================
-        // FIREBASE INIT
+        // FIREBASE AUTH INIT
         // ============================================================
         const firebaseApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(firebaseApp);
-        const db = firebase.firestore(firebaseApp);
-
-        db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
         // ============================================================
         // STATE
@@ -2024,6 +2019,37 @@
         const previewModal = $('previewModal');
         const previewContent = $('previewContent');
         const previewClose = $('previewClose');
+
+        // ============================================================
+        // LOCAL STORAGE HELPERS
+        // ============================================================
+        function getStorageKey() {
+            if (!currentUser) return null;
+            return `zyro_files_${currentUser.uid}`;
+        }
+
+        function saveFilesToStorage() {
+            const key = getStorageKey();
+            if (!key) return;
+            try {
+                localStorage.setItem(key, JSON.stringify(allFiles));
+            } catch (e) {
+                console.warn('Failed to save files to localStorage:', e);
+            }
+        }
+
+        function loadFilesFromStorage() {
+            const key = getStorageKey();
+            if (!key) return [];
+            try {
+                const data = localStorage.getItem(key);
+                if (data) return JSON.parse(data);
+                return [];
+            } catch (e) {
+                console.warn('Failed to load files from localStorage:', e);
+                return [];
+            }
+        }
 
         // ============================================================
         // TOAST
@@ -2145,13 +2171,7 @@
                 setAuthError(null);
                 const cred = await auth.createUserWithEmailAndPassword(email, password);
                 await cred.user.updateProfile({ displayName: name });
-                await db.collection('users').doc(cred.user.uid).set({
-                    displayName: name,
-                    email: email,
-                    photoURL: null,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    provider: 'email'
-                }, { merge: true });
+                // We don't store user data in Firestore anymore, but we can keep a local record if needed.
                 return true;
             } catch (err) { setAuthError(err.message); return false; }
         }
@@ -2306,132 +2326,121 @@
         }
 
         // ============================================================
-        // FILE MANAGEMENT — FIRESTORE AS SOURCE OF TRUTH
+        // FILE MANAGEMENT — LOCAL STORAGE
         // ============================================================
-        function getUserFilesRef() {
-            if (!currentUser) return null;
-            return db.collection('users').doc(currentUser.uid).collection('files');
-        }
 
-        // Load all files from Firestore (no local merging)
-        async function loadFiles() {
-            if (!currentUser) return;
-            try {
-                const snapshot = await getUserFilesRef().orderBy('uploadDate', 'desc').get();
-                const files = [];
-                snapshot.forEach(doc => { files.push({ id: doc.id, ...doc.data() }); });
-                allFiles = files;
-                renderAll();
-            } catch (err) {
-                console.error('Load files error:', err);
+        // Load files from localStorage (source of truth)
+        function loadFiles() {
+            if (!currentUser) {
                 allFiles = [];
-                renderAll();
+                return;
             }
+            allFiles = loadFilesFromStorage();
+            // Sort by uploadDate descending (if date present)
+            allFiles.sort((a, b) => {
+                const da = a.uploadDate ? new Date(a.uploadDate) : new Date(0);
+                const db = b.uploadDate ? new Date(b.uploadDate) : new Date(0);
+                return db - da;
+            });
+            renderAll();
         }
 
-        // Add a new file to Firestore
-        async function addFileMetadata(data) {
+        // Add a new file: push to array and save
+        function addFileMetadata(data) {
             if (!currentUser) return null;
-            try {
-                const ref = getUserFilesRef();
-                const docRef = await ref.add({ ...data, uploadDate: firebase.firestore.FieldValue.serverTimestamp(),
-                    userId: currentUser.uid });
-                return docRef.id;
-            } catch (err) {
-                console.error('Add file error:', err);
-                return null;
-            }
+            // Generate a local ID (just a timestamp + random)
+            const id = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const newFile = { id, ...data, uploadDate: new Date().toISOString() };
+            allFiles.unshift(newFile);
+            saveFilesToStorage();
+            renderAll();
+            return id;
         }
 
-        // Update a file in Firestore
-        async function updateFileMetadata(id, data) {
+        // Update a file: find by id, update fields, save
+        function updateFileMetadata(id, updates) {
             if (!currentUser) return;
-            try {
-                await getUserFilesRef().doc(id).update(data);
-            } catch (err) {
-                console.error('Update error:', err);
-                throw err;
+            const file = allFiles.find(f => f.id === id);
+            if (file) {
+                Object.assign(file, updates);
+                saveFilesToStorage();
+                renderAll();
             }
         }
 
         // Soft delete (move to trash)
-        async function deleteFileMetadata(id, permanent = false) {
+        function deleteFileMetadata(id, permanent = false) {
             if (!currentUser) return;
-            try {
-                const ref = getUserFilesRef().doc(id);
-                if (permanent) {
-                    await ref.delete();
-                } else {
-                    await ref.update({ isTrashed: true, trashedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                }
-            } catch (err) {
-                console.error('Delete error:', err);
-                throw err;
+            const file = allFiles.find(f => f.id === id);
+            if (!file) return;
+            if (permanent) {
+                // Permanent delete: remove from array and call Cloudinary delete later
+                allFiles = allFiles.filter(f => f.id !== id);
+                // Also call Cloudinary delete if token exists (but we'll do that in deletePermanently)
+            } else {
+                file.isTrashed = true;
+                file.trashedAt = new Date().toISOString();
             }
+            saveFilesToStorage();
+            renderAll();
         }
 
         // Restore from trash
-        async function restoreFile(id) {
+        function restoreFile(id) {
             if (!currentUser) return;
-            try {
-                await getUserFilesRef().doc(id).update({ isTrashed: false, trashedAt: null });
+            const file = allFiles.find(f => f.id === id);
+            if (file) {
+                file.isTrashed = false;
+                file.trashedAt = null;
+                saveFilesToStorage();
+                renderAll();
                 showToast('تم استعادة الملف', 'success');
-            } catch (err) {
-                console.error('Restore error:', err);
-                showToast('فشل استعادة الملف', 'error');
             }
         }
 
         // Toggle favorite
-        async function toggleFavorite(id) {
+        function toggleFavorite(id) {
             if (!currentUser) return;
-            try {
-                const doc = await getUserFilesRef().doc(id).get();
-                if (doc.exists) {
-                    const current = doc.data().isFavorite || false;
-                    await getUserFilesRef().doc(id).update({ isFavorite: !current });
-                }
-            } catch (err) {
-                console.error('Favorite error:', err);
-                showToast('فشل تحديث المفضلة', 'error');
+            const file = allFiles.find(f => f.id === id);
+            if (file) {
+                file.isFavorite = !file.isFavorite;
+                saveFilesToStorage();
+                renderAll();
+                // showToast(file.isFavorite ? 'أضيف إلى المفضلة' : 'أزيل من المفضلة', 'info');
             }
         }
 
         // Rename
-        async function renameFile(id, newName) {
+        function renameFile(id, newName) {
             if (!currentUser) return;
-            try {
-                await getUserFilesRef().doc(id).update({ name: newName });
+            const file = allFiles.find(f => f.id === id);
+            if (file) {
+                file.name = newName;
+                saveFilesToStorage();
+                renderAll();
                 showToast('تم إعادة تسمية الملف بنجاح', 'success');
-            } catch (err) {
-                console.error('Rename error:', err);
-                showToast('فشل إعادة تسمية الملف', 'error');
-                throw err;
             }
         }
 
-        // Permanent delete: delete from Cloudinary and Firestore
+        // Permanent delete: remove from Cloudinary and localStorage
         async function deletePermanently(id) {
             if (!currentUser) return;
-            try {
-                const file = allFiles.find(f => f.id === id);
-                if (file && file.deleteToken) {
-                    await deleteFromCloudinary(file.deleteToken);
+            const file = allFiles.find(f => f.id === id);
+            if (!file) return;
+            // Try to delete from Cloudinary using delete token
+            if (file.deleteToken) {
+                const deleted = await deleteFromCloudinary(file.deleteToken);
+                if (deleted) {
+                    showToast('تم حذف الملف من السحابة', 'success');
+                } else {
+                    showToast('فشل حذف الملف من السحابة، لكنه سيزال محلياً', 'warning');
                 }
-                // Delete from Firestore
-                await getUserFilesRef().doc(id).delete();
-                // Remove from local array
-                allFiles = allFiles.filter(f => f.id !== id);
-                renderAll();
-                showToast('تم حذف الملف نهائياً', 'success');
-            } catch (err) {
-                console.error('Permanent delete error:', err);
-                showToast('فشل حذف الملف نهائياً: ' + err.message, 'error');
-                // Still try to remove from Firestore
-                try { await getUserFilesRef().doc(id).delete(); } catch (_) {}
-                allFiles = allFiles.filter(f => f.id !== id);
-                renderAll();
             }
+            // Remove from local array
+            allFiles = allFiles.filter(f => f.id !== id);
+            saveFilesToStorage();
+            renderAll();
+            showToast('تم حذف الملف نهائياً', 'success');
         }
 
         // ============================================================
@@ -2469,14 +2478,9 @@
             renameSaveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...`;
             renameError.classList.remove('show');
             try {
-                await renameFile(renameFileId, newName);
-                // Update local array
-                const file = allFiles.find(f => f.id === renameFileId);
-                if (file) file.name = newName;
+                renameFile(renameFileId, newName);
                 closeRenameModal();
                 renderAll();
-                // Reload from Firestore to be safe
-                await loadFiles();
             } catch (err) {
                 renameSaveBtn.disabled = false;
                 renameSaveBtn.innerHTML = `<i class="fas fa-check"></i> حفظ`;
@@ -2522,7 +2526,7 @@
 
         function formatDate(ts) {
             if (!ts) return '—';
-            const d = ts.toDate ? ts.toDate() : new Date(ts);
+            const d = new Date(ts);
             return d.toLocaleDateString('ar-EG') + ' ' + d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
         }
 
@@ -2661,10 +2665,7 @@
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const id = btn.dataset.id;
-                    const file = allFiles.find(f => f.id === id);
-                    if (file) { file.isFavorite = !file.isFavorite; }
                     toggleFavorite(id);
-                    setTimeout(loadFiles, 300);
                 });
             });
             grid.querySelectorAll('.rename-btn').forEach(btn => {
@@ -2680,15 +2681,8 @@
                     showModal('نقل إلى سلة المحذوفات', 'هل أنت متأكد من نقل هذا الملف إلى سلة المحذوفات؟',
                         'نقل', 'إلغاء').then(async (confirmed) => {
                         if (confirmed) {
-                            const file = allFiles.find(f => f.id === id);
-                            if (file) file.isTrashed = true;
-                            try {
-                                await deleteFileMetadata(id);
-                                showToast('تم نقل الملف إلى سلة المحذوفات', 'success');
-                            } catch (err) {
-                                showToast('فشل نقل الملف', 'error');
-                            }
-                            await loadFiles();
+                            deleteFileMetadata(id);
+                            showToast('تم نقل الملف إلى سلة المحذوفات', 'success');
                         }
                     });
                 });
@@ -2698,7 +2692,6 @@
                     e.stopPropagation();
                     const id = btn.dataset.id;
                     restoreFile(id);
-                    setTimeout(loadFiles, 300);
                 });
             });
             grid.querySelectorAll('.del-permanent-btn').forEach(btn => {
@@ -2709,7 +2702,6 @@
                         .then(async (confirmed) => {
                             if (confirmed) {
                                 await deletePermanently(id);
-                                await loadFiles();
                             }
                         });
                 });
@@ -2767,10 +2759,8 @@
                 }
                 const provider = currentUser.providerData?.[0]?.providerId || 'email';
                 providerName.textContent = provider === 'google.com' ? 'Google' : 'البريد الإلكتروني';
-                db.collection('users').doc(currentUser.uid).get().then(doc => {
-                    if (doc.exists && doc.data().createdAt) joinedDate.textContent = formatDate(doc.data()
-                        .createdAt);
-                }).catch(() => {});
+                // We don't have join date anymore, so set to '—'
+                joinedDate.textContent = '—';
             }
         }
 
@@ -2780,7 +2770,7 @@
         }
 
         // ============================================================
-        // UPLOAD — now with Firestore persistence
+        // UPLOAD — save to localStorage after Cloudinary success
         // ============================================================
         async function handleUpload(files) {
             if (!currentUser) { showToast('يرجى تسجيل الدخول أولاً', 'error'); return; }
@@ -2789,7 +2779,6 @@
             uploadCancelled = false;
             if (uploadCancelBtn) uploadCancelBtn.classList.remove('hidden');
 
-            // Check storage limit
             const active = allFiles.filter(f => !f.isTrashed);
             const totalSize = active.reduce((sum, f) => sum + (f.size || 0), 0);
 
@@ -2818,7 +2807,7 @@
                         progressBar.style.width = Math.min(100, overall) + '%';
                     });
 
-                    // Prepare data for Firestore
+                    // Prepare file data
                     const fileData = {
                         name: file.name,
                         url: result.secure_url,
@@ -2829,21 +2818,12 @@
                         isFavorite: false,
                         isTrashed: false,
                         deleteToken: result.delete_token || null,
-                        userId: currentUser.uid
                     };
 
-                    // Save to Firestore (wait for it)
-                    const docId = await addFileMetadata(fileData);
-                    if (!docId) {
-                        throw new Error('فشل حفظ الملف في قاعدة البيانات');
-                    }
-
-                    // Add to local array with the correct id
-                    allFiles.unshift({ id: docId, ...fileData, uploadDate: new Date() });
-                    renderAll();
+                    // Save to localStorage
+                    addFileMetadata(fileData);
                     uploaded++;
                     progressBar.style.width = Math.min(100, ((uploaded + failed) / total) * 100) + '%';
-                    totalSize += file.size; // update local total
 
                 } catch (err) {
                     if (err.cancelled) { showToast('تم إلغاء الرفع', 'info'); break; }
@@ -2866,8 +2846,6 @@
 
             if (uploaded > 0) {
                 showToast(`تم رفع ${uploaded} ملف(ات) بنجاح`, 'success');
-                // Reload from Firestore to ensure consistency
-                await loadFiles();
             }
             if (failed > 0) showToast(`فشل رفع ${failed} ملف(ات)`, 'error');
         }
@@ -2975,7 +2953,6 @@
             try {
                 const result = await uploadToCloudinary(file, `zyro/${currentUser.uid}/profile`);
                 await currentUser.updateProfile({ photoURL: result.secure_url });
-                await db.collection('users').doc(currentUser.uid).update({ photoURL: result.secure_url });
                 showToast('تم تحديث الصورة الشخصية!', 'success');
                 updateSidebarUser();
                 updateProfileView();
@@ -3003,19 +2980,8 @@
             authResolved = true;
             if (user) {
                 currentUser = user;
-                try {
-                    const doc = await db.collection('users').doc(user.uid).get();
-                    if (!doc.exists) {
-                        await db.collection('users').doc(user.uid).set({
-                            displayName: user.displayName || 'مستخدم',
-                            email: user.email || '',
-                            photoURL: user.photoURL || null,
-                            provider: user.providerData?.[0]?.providerId || 'email',
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true });
-                    }
-                } catch (err) { console.warn('User doc sync:', err); }
-                await loadFiles();
+                // Load files from localStorage for this user
+                loadFiles();
                 if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
                 else document.documentElement.removeAttribute('data-theme');
                 themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
@@ -3044,8 +3010,8 @@
             themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
         }
 
-        console.log('☁️ Zyro Cloud — Firestore as source of truth');
-        console.log('🔥 Firebase ready | ☁️ Cloudinary ready');
+        console.log('☁️ Zyro Cloud — localStorage as metadata store');
+        console.log('🔥 Firebase Auth only | ☁️ Cloudinary for storage');
     </script>
 </body>
 </html>
