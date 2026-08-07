@@ -2176,27 +2176,11 @@
             } catch (err) { setAuthError(err.message); return false; }
         }
 
-async function signInWithGoogle() {
-    try {
-        setAuthError(null);
-
-        const provider = new firebase.auth.GoogleAuthProvider();
-
-        // حفظ أن المستخدم بدأ تسجيل الدخول
-        sessionStorage.setItem('googleLoginPending', 'true');
-
-        // مناسب لتطبيقات WebView / Median
-        await auth.signInWithRedirect(provider);
-
-        return true;
-
-    } catch (err) {
-        console.error('Google Sign-In Error:', err);
-        sessionStorage.removeItem('googleLoginPending');
-        setAuthError(err.message || 'حدث خطأ أثناء تسجيل الدخول بجوجل');
-        return false;
-    }
-}
+        async function signInWithGoogle() {
+            try { setAuthError(null);
+                await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); return true; } catch (err) { setAuthError(
+                    err.message); return false; }
+        }
 
         async function sendPasswordReset(email) {
             try { setAuthError(null);
