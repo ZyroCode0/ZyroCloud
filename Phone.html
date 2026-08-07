@@ -1,0 +1,3039 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Zyro Cloud</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js">
+    </script>
+
+    <style>
+        /* ============================================================
+           ROOT — Material Design 3 inspired
+           ============================================================ */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            overflow-x: hidden !important;
+            height: 100%;
+            height: 100dvh;
+            font-family: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+            background: var(--md-surface);
+            color: var(--md-text);
+            direction: rtl;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        :root {
+            --md-primary: #1A73E8;
+            --md-primary-dark: #1557B0;
+            --md-primary-light: #D2E3FC;
+            --md-surface: #F8F9FA;
+            --md-surface-dark: #121212;
+            --md-card: #FFFFFF;
+            --md-card-dark: #1E1E1E;
+            --md-text: #1F1F1F;
+            --md-text-dark: #E8EAED;
+            --md-text-secondary: #5F6368;
+            --md-text-secondary-dark: #9AA0A6;
+            --md-divider: rgba(0, 0, 0, 0.08);
+            --md-divider-dark: rgba(255, 255, 255, 0.08);
+            --md-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+            --md-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+            --md-radius: 16px;
+            --md-radius-sm: 12px;
+            --md-radius-xs: 8px;
+            --md-radius-full: 9999px;
+            --md-font: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+            --md-font-numbers: 'Rubik', 'IBM Plex Sans Arabic', sans-serif;
+            --md-nav-height: 64px;
+            --md-appbar-height: 56px;
+            --md-transition: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            --md-ripple: rgba(26, 115, 232, 0.12);
+        }
+
+        [data-theme="dark"] {
+            --md-surface: #121212;
+            --md-card: #1E1E1E;
+            --md-text: #E8EAED;
+            --md-text-secondary: #9AA0A6;
+            --md-divider: rgba(255, 255, 255, 0.08);
+            --md-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+            --md-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --md-ripple: rgba(255, 255, 255, 0.08);
+        }
+
+        ::-webkit-scrollbar {
+            width: 3px;
+            height: 3px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--md-text-secondary);
+            border-radius: 20px;
+            opacity: 0.4;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* ============================================================
+           UTILITIES
+           ============================================================ */
+        .hidden {
+            display: none !important;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+        .fade-transition {
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        /* ============================================================
+           BUTTONS — 48px touch target minimum
+           ============================================================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--md-radius-full);
+            font-family: var(--md-font);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--md-transition);
+            text-decoration: none;
+            line-height: 1.4;
+            position: relative;
+            overflow: hidden;
+            min-height: 48px;
+            min-width: 48px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: rgba(255, 255, 255, 0);
+            transition: background var(--md-transition);
+            pointer-events: none;
+        }
+        .btn:active::after {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .btn-primary {
+            background: var(--md-primary);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(26, 115, 232, 0.35);
+        }
+        .btn-primary:active {
+            transform: scale(0.97);
+            box-shadow: 0 1px 6px rgba(26, 115, 232, 0.25);
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--md-text);
+            border: 1.5px solid var(--md-divider);
+        }
+        .btn-outline:active {
+            background: var(--md-divider);
+            transform: scale(0.97);
+        }
+        .btn-danger {
+            background: #D93025;
+            color: #fff;
+        }
+        .btn-danger:active {
+            transform: scale(0.97);
+        }
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            min-height: 40px;
+        }
+        .btn-icon {
+            width: 48px;
+            height: 48px;
+            padding: 0;
+            border-radius: 50%;
+            min-height: 48px;
+            min-width: 48px;
+        }
+
+        /* ============================================================
+           SPLASH SCREEN
+           ============================================================ */
+        #splashScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--md-surface);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+            opacity: 1;
+            visibility: visible;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        #splashScreen.hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            display: none !important;
+        }
+        #splashScreen .splash-icon {
+            font-size: 3.6rem;
+            color: var(--md-primary);
+            margin-bottom: 12px;
+        }
+        #splashScreen .splash-logo {
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--md-primary), #4FC3F7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: var(--md-font);
+        }
+        #splashScreen .splash-sub {
+            color: var(--md-text-secondary);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+        #splashScreen .splash-loader {
+            margin-top: 24px;
+            width: 64px;
+            height: 4px;
+            background: var(--md-divider);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        #splashScreen .splash-loader::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--md-primary), #4FC3F7);
+            border-radius: 10px;
+            animation: splashLoad 1.6s ease-in-out infinite;
+        }
+        @keyframes splashLoad {
+            0% {
+                right: -60%;
+            }
+            100% {
+                right: 120%;
+            }
+        }
+
+        /* ============================================================
+           LOGIN PAGE — full screen card
+           ============================================================ */
+        #loginPage {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: var(--md-surface);
+            z-index: 10;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        #loginPage.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 16px 20px 32px;
+            margin: auto;
+        }
+
+        .login-brand {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .login-brand .brand-icon {
+            font-size: 2.8rem;
+            color: var(--md-primary);
+            display: block;
+            margin-bottom: 6px;
+        }
+        .login-brand h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--md-primary), #4FC3F7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: var(--md-font);
+        }
+        .login-brand p {
+            color: var(--md-text-secondary);
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        .login-card {
+            background: var(--md-card);
+            border-radius: var(--md-radius);
+            padding: 24px 20px 28px;
+            box-shadow: var(--md-shadow-lg);
+            border: 1px solid var(--md-divider);
+            transition: background var(--md-transition), border var(--md-transition);
+        }
+
+        .login-card .auth-error {
+            background: #FEE8E6;
+            color: #D93025;
+            padding: 10px 14px;
+            border-radius: var(--md-radius-xs);
+            font-size: 0.8rem;
+            margin-bottom: 16px;
+            display: none;
+            font-family: var(--md-font);
+        }
+        [data-theme="dark"] .login-card .auth-error {
+            background: rgba(217, 48, 37, 0.15);
+            color: #F28B82;
+        }
+        .login-card .auth-error.show {
+            display: block;
+            animation: shake 0.4s ease;
+        }
+
+        .login-card .form-group {
+            margin-bottom: 16px;
+        }
+        .login-card .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--md-text-secondary);
+            margin-bottom: 4px;
+            font-family: var(--md-font);
+            letter-spacing: 0.02em;
+        }
+        .login-card .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: var(--md-radius-xs);
+            border: 1.5px solid var(--md-divider);
+            background: var(--md-surface);
+            color: var(--md-text);
+            font-family: var(--md-font);
+            font-size: 0.95rem;
+            transition: all var(--md-transition);
+            outline: none;
+            min-height: 48px;
+            -webkit-appearance: none;
+        }
+        .login-card .form-group input:focus {
+            border-color: var(--md-primary);
+            box-shadow: 0 0 0 4px var(--md-ripple);
+        }
+
+        .login-card .form-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 4px 0 20px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .login-card .form-options label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--md-text-secondary);
+            cursor: pointer;
+            font-family: var(--md-font);
+            touch-action: manipulation;
+        }
+        .login-card .form-options label input[type="checkbox"] {
+            accent-color: var(--md-primary);
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            cursor: pointer;
+        }
+        .login-card .form-options a {
+            color: var(--md-primary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            font-family: var(--md-font);
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .login-card .form-options a:active {
+            opacity: 0.6;
+        }
+
+        .login-card .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 0.95rem;
+            min-height: 48px;
+        }
+
+        .login-card .divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 18px 0;
+            color: var(--md-text-secondary);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-family: var(--md-font);
+            opacity: 0.6;
+        }
+        .login-card .divider::before,
+        .login-card .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--md-divider);
+        }
+
+        .login-card .social-btn {
+            width: 100%;
+            padding: 12px;
+            border: 1.5px solid var(--md-divider);
+            border-radius: var(--md-radius-xs);
+            background: transparent;
+            color: var(--md-text);
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--md-transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: var(--md-font);
+            min-height: 48px;
+            touch-action: manipulation;
+        }
+        .login-card .social-btn:active {
+            background: var(--md-divider);
+            transform: scale(0.98);
+        }
+
+        .login-card .login-footer {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 0.85rem;
+            color: var(--md-text-secondary);
+            font-family: var(--md-font);
+        }
+        .login-card .login-footer a {
+            color: var(--md-primary);
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            touch-action: manipulation;
+        }
+        .login-card .login-footer a:active {
+            opacity: 0.6;
+        }
+
+        .auth-form.hidden {
+            display: none !important;
+        }
+
+        /* ============================================================
+           DASHBOARD — full screen with bottom nav
+           ============================================================ */
+        #dashboardContainer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            flex-direction: column;
+            background: var(--md-surface);
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+            z-index: 10;
+            overflow-x: hidden !important;
+        }
+        #dashboardContainer.active {
+            display: flex;
+        }
+
+        /* ===== Top App Bar ===== */
+        .appbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px 4px;
+            min-height: var(--md-appbar-height);
+            background: var(--md-surface);
+            border-bottom: 1px solid var(--md-divider);
+            flex-shrink: 0;
+            gap: 8px;
+        }
+        .appbar .appbar-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
+        }
+        .appbar .appbar-title .logo-icon {
+            font-size: 1.4rem;
+            color: var(--md-primary);
+        }
+        .appbar .appbar-title h1 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            font-family: var(--md-font);
+            color: var(--md-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .appbar .appbar-title .greeting {
+            font-size: 0.7rem;
+            color: var(--md-text-secondary);
+            font-weight: 400;
+            margin-right: 4px;
+        }
+        .appbar .appbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .appbar .appbar-actions .icon-btn {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--md-text-secondary);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all var(--md-transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .appbar .appbar-actions .icon-btn:active {
+            background: var(--md-divider);
+            transform: scale(0.92);
+        }
+
+        /* ===== Search Bar ===== */
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 16px 12px;
+            background: var(--md-surface);
+            flex-shrink: 0;
+        }
+        .search-bar .search-input-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--md-card);
+            border: 1.5px solid var(--md-divider);
+            border-radius: var(--md-radius-sm);
+            padding: 4px 14px;
+            transition: all var(--md-transition);
+            min-height: 44px;
+        }
+        .search-bar .search-input-wrap:focus-within {
+            border-color: var(--md-primary);
+            box-shadow: 0 0 0 4px var(--md-ripple);
+        }
+        .search-bar .search-input-wrap .search-icon {
+            color: var(--md-text-secondary);
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .search-bar .search-input-wrap input {
+            border: none;
+            background: transparent;
+            outline: none;
+            color: var(--md-text);
+            font-family: var(--md-font);
+            font-size: 0.9rem;
+            width: 100%;
+            min-height: 36px;
+            padding: 4px 0;
+        }
+        .search-bar .search-input-wrap input::placeholder {
+            color: var(--md-text-secondary);
+            opacity: 0.7;
+        }
+
+        /* ===== Main Content ===== */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 16px 8px;
+            padding-bottom: calc(8px + var(--md-nav-height) + env(safe-area-inset-bottom));
+            overflow-x: hidden !important;
+        }
+        .main-content::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        /* ===== View Content ===== */
+        .view-content {
+            display: block;
+            animation: fadeSlideUp 0.3s ease both;
+            overflow-x: hidden !important;
+        }
+        .view-content.hidden {
+            display: none !important;
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== Stats Grid ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--md-card);
+            border-radius: var(--md-radius-sm);
+            padding: 14px 14px 12px;
+            box-shadow: var(--md-shadow);
+            border: 1px solid var(--md-divider);
+            transition: all var(--md-transition);
+        }
+        .stat-card:active {
+            transform: scale(0.97);
+        }
+        .stat-card .stat-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--md-text-secondary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--md-font);
+        }
+        .stat-card .stat-label i {
+            font-size: 0.7rem;
+            color: var(--md-primary);
+        }
+        .stat-card .stat-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-top: 2px;
+            color: var(--md-text);
+            font-family: var(--md-font-numbers);
+        }
+        .stat-card .stat-sub {
+            font-size: 0.65rem;
+            color: var(--md-text-secondary);
+            margin-top: 1px;
+            font-family: var(--md-font);
+        }
+
+        /* ===== Upload Zone ===== */
+        .upload-zone {
+            background: var(--md-card);
+            border: 2px dashed var(--md-divider);
+            border-radius: var(--md-radius);
+            padding: 20px 16px;
+            text-align: center;
+            transition: all var(--md-transition);
+            margin-bottom: 16px;
+            cursor: pointer;
+            position: relative;
+            touch-action: manipulation;
+        }
+        .upload-zone:active {
+            transform: scale(0.98);
+        }
+        .upload-zone.dragover {
+            border-color: var(--md-primary);
+            background: var(--md-ripple);
+        }
+        .upload-zone .upload-icon {
+            font-size: 2rem;
+            display: block;
+            color: var(--md-primary);
+            margin-bottom: 6px;
+        }
+        .upload-zone h3 {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--md-text);
+            font-family: var(--md-font);
+        }
+        .upload-zone p {
+            color: var(--md-text-secondary);
+            font-size: 0.75rem;
+            margin-top: 2px;
+            font-family: var(--md-font);
+        }
+        .upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 1;
+        }
+        .upload-zone .upload-progress {
+            margin-top: 12px;
+            height: 4px;
+            background: var(--md-divider);
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        .upload-zone .upload-progress.show {
+            display: block;
+        }
+        .upload-zone .upload-progress .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--md-primary), #4FC3F7);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .upload-zone .upload-status {
+            font-size: 0.75rem;
+            color: var(--md-text-secondary);
+            margin-top: 6px;
+            display: none;
+            font-family: var(--md-font);
+        }
+        .upload-zone .upload-status.show {
+            display: block;
+        }
+        .upload-zone .upload-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .upload-zone .upload-cancel-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: var(--md-radius-full);
+            border: 1px solid var(--md-divider);
+            background: var(--md-card);
+            color: var(--md-text-secondary);
+            font-family: var(--md-font);
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--md-transition);
+            min-height: 32px;
+            touch-action: manipulation;
+        }
+        .upload-zone .upload-cancel-btn:active {
+            transform: scale(0.95);
+        }
+        .upload-zone .upload-cancel-btn.hidden {
+            display: none;
+        }
+
+        /* ===== File Toolbar ===== */
+        .file-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .file-toolbar .section-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--md-text);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--md-font);
+        }
+        .file-toolbar .view-options {
+            display: flex;
+            gap: 2px;
+        }
+        .file-toolbar .view-options button {
+            background: transparent;
+            border: none;
+            padding: 8px 12px;
+            border-radius: var(--md-radius-xs);
+            cursor: pointer;
+            color: var(--md-text-secondary);
+            transition: all var(--md-transition);
+            font-size: 0.9rem;
+            min-height: 40px;
+            min-width: 40px;
+            touch-action: manipulation;
+        }
+        .file-toolbar .view-options button:active {
+            transform: scale(0.92);
+        }
+        .file-toolbar .view-options button.active {
+            background: var(--md-ripple);
+            color: var(--md-primary);
+        }
+
+        /* ===== Filter Chips ===== */
+        .filter-chips {
+            display: flex;
+            gap: 8px;
+            padding: 4px 0 12px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            flex-shrink: 0;
+        }
+        .filter-chips::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-chips .chip {
+            padding: 6px 16px;
+            border-radius: var(--md-radius-full);
+            border: 1.5px solid var(--md-divider);
+            background: transparent;
+            color: var(--md-text-secondary);
+            font-family: var(--md-font);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--md-transition);
+            white-space: nowrap;
+            min-height: 36px;
+            touch-action: manipulation;
+        }
+        .filter-chips .chip:active {
+            transform: scale(0.95);
+        }
+        .filter-chips .chip.active {
+            background: var(--md-primary);
+            color: #fff;
+            border-color: var(--md-primary);
+        }
+
+        /* ===== Files Grid ===== */
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+            overflow-x: hidden !important;
+        }
+        .files-grid.list-view {
+            grid-template-columns: 1fr;
+        }
+
+        .file-card {
+            background: var(--md-card);
+            border-radius: var(--md-radius-sm);
+            padding: 12px 10px 10px;
+            box-shadow: var(--md-shadow);
+            border: 1px solid var(--md-divider);
+            transition: all var(--md-transition);
+            position: relative;
+            cursor: default;
+            animation: fadeSlideUp 0.3s ease both;
+            touch-action: manipulation;
+            overflow: hidden;
+        }
+        .file-card:active {
+            transform: scale(0.97);
+        }
+        .file-card .file-icon {
+            font-size: 1.6rem;
+            text-align: center;
+            display: block;
+            margin-bottom: 4px;
+            color: var(--md-primary);
+        }
+        .file-card .file-name {
+            font-weight: 600;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--md-text);
+            font-family: var(--md-font);
+        }
+        .file-card .file-meta {
+            font-size: 0.6rem;
+            color: var(--md-text-secondary);
+            margin-top: 1px;
+            font-family: var(--md-font-numbers);
+        }
+        .file-card .file-actions {
+            display: flex;
+            gap: 2px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+        .file-card .file-actions button {
+            background: transparent;
+            border: none;
+            min-width: 36px;
+            min-height: 36px;
+            padding: 2px 6px;
+            border-radius: var(--md-radius-xs);
+            cursor: pointer;
+            color: var(--md-text-secondary);
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--md-transition);
+            touch-action: manipulation;
+        }
+        .file-card .file-actions button:active {
+            transform: scale(0.88);
+            background: var(--md-divider);
+        }
+        .file-card .file-actions .fav-btn.active {
+            color: #F9AB00;
+        }
+        .file-card .file-actions .fav-btn.active i {
+            color: #F9AB00;
+        }
+        .file-card .file-preview {
+            width: 100%;
+            aspect-ratio: 16/10;
+            border-radius: var(--md-radius-xs);
+            object-fit: cover;
+            background: var(--md-divider);
+            margin-bottom: 4px;
+        }
+        .file-card .file-preview.audio-preview {
+            aspect-ratio: auto;
+            height: 32px;
+        }
+        .file-card.list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+        }
+        .file-card.list-item .file-icon {
+            font-size: 1.2rem;
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+        .file-card.list-item .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .file-card.list-item .file-info .file-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: var(--md-font);
+        }
+        .file-card.list-item .file-actions {
+            margin-top: 0;
+            flex-shrink: 0;
+        }
+        .file-card.list-item .file-preview {
+            width: 40px;
+            height: 40px;
+            aspect-ratio: 1;
+            margin-bottom: 0;
+            flex-shrink: 0;
+            border-radius: var(--md-radius-xs);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 16px;
+            color: var(--md-text-secondary);
+            grid-column: 1 / -1;
+        }
+        .empty-state .empty-icon {
+            font-size: 2.6rem;
+            display: block;
+            margin-bottom: 10px;
+            color: var(--md-text-secondary);
+            opacity: 0.4;
+        }
+        .empty-state h3 {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--md-text);
+            font-family: var(--md-font);
+        }
+        .empty-state p {
+            font-size: 0.8rem;
+            margin-top: 2px;
+            color: var(--md-text-secondary);
+            font-family: var(--md-font);
+        }
+
+        /* ===== Settings / Profile ===== */
+        .settings-section {
+            background: var(--md-card);
+            border-radius: var(--md-radius);
+            padding: 16px 16px 4px;
+            box-shadow: var(--md-shadow);
+            border: 1px solid var(--md-divider);
+            margin-bottom: 12px;
+            transition: all var(--md-transition);
+        }
+        .settings-section h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--md-font);
+        }
+        .settings-section h2 i {
+            color: var(--md-primary);
+        }
+        .settings-section .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--md-divider);
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 48px;
+        }
+        .settings-section .setting-row:last-child {
+            border-bottom: none;
+        }
+        .settings-section .setting-row .setting-label {
+            font-weight: 500;
+            font-size: 0.85rem;
+            font-family: var(--md-font);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .settings-section .setting-row .setting-desc {
+            color: var(--md-text-secondary);
+            font-size: 0.7rem;
+            font-family: var(--md-font);
+        }
+        .settings-section .setting-row .btn {
+            min-height: 40px;
+            min-width: 40px;
+        }
+
+        .profile-avatar-large {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--md-primary), #4FC3F7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.6rem;
+            font-weight: 600;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .profile-avatar-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .profile-info h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            font-family: var(--md-font);
+            margin-bottom: 1px;
+        }
+        .profile-info p {
+            color: var(--md-text-secondary);
+            font-size: 0.8rem;
+            font-family: var(--md-font);
+            margin: 1px 0;
+        }
+        .profile-info .meta {
+            color: var(--md-text-secondary);
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+
+        /* ===== Bottom Navigation ===== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--md-nav-height);
+            background: var(--md-card);
+            border-top: 1px solid var(--md-divider);
+            display: flex;
+            align-items: stretch;
+            justify-content: space-around;
+            z-index: 50;
+            padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: background var(--md-transition), border var(--md-transition);
+        }
+        .bottom-nav .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            border: none;
+            background: transparent;
+            color: var(--md-text-secondary);
+            font-family: var(--md-font);
+            font-size: 0.55rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--md-transition);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            padding: 4px 0;
+            min-height: 56px;
+            position: relative;
+        }
+        .bottom-nav .nav-item i {
+            font-size: 1.2rem;
+            transition: all var(--md-transition);
+        }
+        .bottom-nav .nav-item span {
+            line-height: 1.2;
+        }
+        .bottom-nav .nav-item:active {
+            transform: scale(0.92);
+        }
+        .bottom-nav .nav-item.active {
+            color: var(--md-primary);
+        }
+        .bottom-nav .nav-item.active i {
+            transform: translateY(-2px);
+        }
+        .bottom-nav .nav-item .nav-badge {
+            position: absolute;
+            top: 6px;
+            right: 50%;
+            transform: translateX(50%);
+            background: #D93025;
+            color: #fff;
+            font-size: 0.5rem;
+            padding: 1px 6px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-family: var(--md-font-numbers);
+            min-width: 18px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* ============================================================
+           IMAGE/VIDEO PREVIEW MODAL
+           ============================================================ */
+        #previewModal {
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            flex-direction: column;
+            animation: fadeIn 0.25s ease;
+        }
+        #previewModal.active {
+            display: flex;
+        }
+        #previewModal .preview-close {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            font-size: 1.4rem;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            transition: background 0.2s;
+        }
+        #previewModal .preview-close:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.92);
+        }
+        #previewModal .preview-content {
+            max-width: 100%;
+            max-height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        #previewModal .preview-content img {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+        }
+        #previewModal .preview-content video {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+            background: #000;
+        }
+
+        /* ============================================================
+           MODALS
+           ============================================================ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.50);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-box {
+            background: var(--md-card);
+            border-radius: var(--md-radius);
+            padding: 24px 20px 20px;
+            max-width: 360px;
+            width: 100%;
+            box-shadow: var(--md-shadow-lg);
+            border: 1px solid var(--md-divider);
+            animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-height: 90dvh;
+            overflow-y: auto;
+        }
+        .modal-box h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--md-font);
+        }
+        .modal-box h2 i {
+            color: var(--md-primary);
+        }
+        .modal-box p {
+            color: var(--md-text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            font-family: var(--md-font);
+        }
+        .modal-box .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        /* Rename Modal */
+        #renameModalOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.50);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        #renameModalOverlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        #renameModalOverlay.active .rename-modal-card {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .rename-modal-card {
+            background: var(--md-card);
+            border-radius: var(--md-radius);
+            padding: 24px 20px 20px;
+            max-width: 360px;
+            width: 100%;
+            box-shadow: var(--md-shadow-lg);
+            border: 1px solid var(--md-divider);
+            transform: scale(0.92);
+            opacity: 0;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+            max-height: 90dvh;
+            overflow-y: auto;
+        }
+        .rename-modal-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 2px;
+        }
+        .rename-modal-header i {
+            font-size: 1.2rem;
+            color: var(--md-primary);
+        }
+        .rename-modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--md-text);
+            margin: 0;
+            font-family: var(--md-font);
+        }
+        .rename-modal-sub {
+            color: var(--md-text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 14px;
+            margin-top: 2px;
+            font-family: var(--md-font);
+        }
+        .rename-modal-input-group {
+            margin-bottom: 16px;
+        }
+        .rename-modal-input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: var(--md-radius-xs);
+            border: 1.5px solid var(--md-divider);
+            background: var(--md-surface);
+            color: var(--md-text);
+            font-family: var(--md-font);
+            font-size: 0.9rem;
+            transition: all var(--md-transition);
+            outline: none;
+            min-height: 48px;
+        }
+        .rename-modal-input-group input:focus {
+            border-color: var(--md-primary);
+            box-shadow: 0 0 0 4px var(--md-ripple);
+        }
+        .rename-modal-input-group .rename-error {
+            color: #D93025;
+            font-size: 0.75rem;
+            margin-top: 4px;
+            display: none;
+            font-family: var(--md-font);
+        }
+        .rename-modal-input-group .rename-error.show {
+            display: block;
+        }
+        .rename-modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        /* ============================================================
+           TOAST
+           ============================================================ */
+        .toast-container {
+            position: fixed;
+            bottom: calc(80px + env(safe-area-inset-bottom));
+            left: 16px;
+            right: 16px;
+            z-index: 400;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 360px;
+            margin: 0 auto;
+            pointer-events: none;
+        }
+        .toast {
+            background: var(--md-card);
+            border-radius: var(--md-radius-sm);
+            padding: 12px 16px;
+            box-shadow: var(--md-shadow-lg);
+            border: 1px solid var(--md-divider);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideUpToast 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            font-size: 0.8rem;
+            font-family: var(--md-font);
+            pointer-events: auto;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .toast .toast-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .toast.success .toast-icon {
+            color: #34A853;
+        }
+        .toast.error .toast-icon {
+            color: #D93025;
+        }
+        .toast.info .toast-icon {
+            color: var(--md-primary);
+        }
+
+        @keyframes slideUpToast {
+            from {
+                opacity: 0;
+                transform: translateY(16px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ============================================================
+           ANIMATIONS
+           ============================================================ */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.92);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20%,
+            60% {
+                transform: translateX(-6px);
+            }
+            40%,
+            80% {
+                transform: translateX(6px);
+            }
+        }
+
+        /* ============================================================
+           RESPONSIVE — tablets & larger phones
+           ============================================================ */
+        @media (min-width: 600px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .files-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .files-grid.list-view {
+                grid-template-columns: 1fr;
+            }
+            .login-container {
+                padding: 24px 32px 40px;
+            }
+        }
+
+        @media (min-width: 840px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            .files-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            .files-grid.list-view {
+                grid-template-columns: 1fr;
+            }
+            .login-container {
+                max-width: 440px;
+                padding: 32px 40px 48px;
+            }
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            .login-container {
+                padding: 8px 16px 16px;
+            }
+            .login-brand {
+                margin-bottom: 12px;
+            }
+            .login-brand .brand-icon {
+                font-size: 1.8rem;
+            }
+            .login-brand h1 {
+                font-size: 1.2rem;
+            }
+            .login-brand p {
+                font-size: 0.7rem;
+            }
+            .login-card {
+                padding: 14px 16px 18px;
+            }
+            .login-card .form-group {
+                margin-bottom: 8px;
+            }
+            .login-card .form-group input {
+                padding: 8px 12px;
+                min-height: 36px;
+                font-size: 0.85rem;
+            }
+            .login-card .btn {
+                padding: 8px;
+                font-size: 0.8rem;
+                min-height: 36px;
+            }
+            .login-card .social-btn {
+                padding: 6px;
+                font-size: 0.8rem;
+                min-height: 36px;
+            }
+            .login-card .form-options {
+                margin: 2px 0 10px;
+            }
+            .login-card .divider {
+                margin: 10px 0;
+            }
+            .login-card .login-footer {
+                margin-top: 10px;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    SPLASH SCREEN
+    ============================================================ -->
+    <div id="splashScreen">
+        <div class="splash-icon"><i class="fas fa-cloud"></i></div>
+        <div class="splash-logo">Zyro Cloud</div>
+        <div class="splash-sub">تخزين سحابي احترافي</div>
+        <div class="splash-loader"></div>
+    </div>
+
+    <!-- ============================================================
+    LOGIN PAGE
+    ============================================================ -->
+    <div id="loginPage">
+        <div class="login-container">
+            <div class="login-brand">
+                <span class="brand-icon"><i class="fas fa-cloud"></i></span>
+                <h1>Zyro Cloud</h1>
+                <p>تخزين سحابي آمن وسريع</p>
+            </div>
+
+            <div class="login-card">
+                <div id="authError" class="auth-error"></div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="loginEmail">البريد الإلكتروني</label>
+                        <input type="email" id="loginEmail" placeholder="you@example.com" required autocomplete="email" inputmode="email" />
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">كلمة المرور</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+                    </div>
+                    <div class="form-options">
+                        <label><input type="checkbox" id="rememberMe" /> تذكرني</label>
+                        <a id="forgotLink">نسيت كلمة المرور؟</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-arrow-right-to-bracket"></i> تسجيل الدخول</button>
+                    <div class="divider">أو</div>
+                    <button type="button" id="googleBtn" class="social-btn"><i class="fab fa-google"></i> المتابعة عبر Google</button>
+                    <div class="login-footer">
+                        ليس لديك حساب؟ <a id="showRegister">إنشاء حساب</a>
+                    </div>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" class="auth-form hidden">
+                    <div class="form-group">
+                        <label for="regName">الاسم الكامل</label>
+                        <input type="text" id="regName" placeholder="جون دو" required autocomplete="name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="regEmail">البريد الإلكتروني</label>
+                        <input type="email" id="regEmail" placeholder="you@example.com" required autocomplete="email" inputmode="email" />
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">كلمة المرور</label>
+                        <input type="password" id="regPassword" placeholder="6 أحرف على الأقل" required minlength="6" autocomplete="new-password" />
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-user-plus"></i> إنشاء حساب</button>
+                    <div class="divider">أو</div>
+                    <button type="button" id="googleBtnReg" class="social-btn"><i class="fab fa-google"></i> المتابعة عبر Google</button>
+                    <div class="login-footer">
+                        لديك حساب بالفعل؟ <a id="showLogin">تسجيل الدخول</a>
+                    </div>
+                </form>
+
+                <!-- Forgot Form -->
+                <form id="forgotForm" class="auth-form hidden">
+                    <p style="color:var(--md-text-secondary);font-size:0.85rem;margin-bottom:14px;">أدخل بريدك الإلكتروني لتلقي رابط إعادة تعيين كلمة المرور.</p>
+                    <div class="form-group">
+                        <label for="forgotEmail">البريد الإلكتروني</label>
+                        <input type="email" id="forgotEmail" placeholder="you@example.com" required autocomplete="email" inputmode="email" />
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> إرسال رابط إعادة التعيين</button>
+                    <div style="text-align:center;margin-top:12px;">
+                        <a id="backToLogin" style="color:var(--md-primary);cursor:pointer;font-size:0.8rem;font-weight:500;touch-action:manipulation;"> <i class="fas fa-arrow-left"></i> العودة إلى تسجيل الدخول</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    DASHBOARD
+    ============================================================ -->
+    <div id="dashboardContainer">
+
+        <!-- Top App Bar -->
+        <header class="appbar">
+            <div class="appbar-title">
+                <span class="logo-icon"><i class="fas fa-cloud"></i></span>
+                <div>
+                    <h1 id="pageTitle">لوحة التحكم</h1>
+                    <span class="greeting" id="greetingName">مرحباً، مستخدم</span>
+                </div>
+            </div>
+            <div class="appbar-actions">
+                <button class="icon-btn" id="themeToggle" title="تبديل الثيم"><i class="fas fa-moon"></i></button>
+            </div>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <div class="search-input-wrap">
+                <span class="search-icon"><i class="fas fa-magnifying-glass"></i></span>
+                <input type="text" id="searchInput" placeholder="البحث عن ملفات..." inputmode="search" />
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+
+            <!-- ====== VIEW: Home ====== -->
+            <div id="view-home" class="view-content">
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card"><div class="stat-label"><i class="fas fa-hard-drive"></i> المستخدم</div><div class="stat-value" id="storageUsed">0 MB</div><div class="stat-sub">من 5 جيجابايت</div></div>
+                    <div class="stat-card"><div class="stat-label"><i class="fas fa-files"></i> الملفات</div><div class="stat-value" id="totalFiles">0</div><div class="stat-sub">عناصر</div></div>
+                    <div class="stat-card"><div class="stat-label"><i class="fas fa-image"></i> الصور</div><div class="stat-value" id="statImages">0</div><div class="stat-sub">ملفات</div></div>
+                    <div class="stat-card"><div class="stat-label"><i class="fas fa-video"></i> الفيديوهات</div><div class="stat-value" id="statVideos">0</div><div class="stat-sub">ملفات</div></div>
+                </div>
+
+                <div class="upload-zone" id="uploadZone">
+                    <span class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></span>
+                    <h3>أفلت ملفاتك هنا</h3>
+                    <p>أو انقر للتصفح — حتى 100 ميجابايت لكل ملف</p>
+                    <input type="file" id="fileInput" multiple accept="*/*" />
+                    <div class="upload-progress" id="uploadProgress"><div class="progress-bar" id="progressBar"></div></div>
+                    <div class="upload-status-row">
+                        <div class="upload-status" id="uploadStatus"><i class="fas fa-spinner fa-spin"></i> جاري الرفع...</div>
+                        <button type="button" class="upload-cancel-btn hidden" id="uploadCancelBtn" aria-label="إلغاء الرفع"><i class="fas fa-xmark"></i> إلغاء</button>
+                    </div>
+                </div>
+
+                <div class="file-toolbar">
+                    <span class="section-title"><i class="fas fa-clock-rotate-left"></i> الملفات الحديثة</span>
+                    <div class="view-options">
+                        <button class="active" data-viewmode="grid" title="شبكة"><i class="fas fa-grid-2"></i></button>
+                        <button data-viewmode="list" title="قائمة"><i class="fas fa-list"></i></button>
+                    </div>
+                </div>
+                <div class="files-grid" id="recentFilesGrid"></div>
+            </div>
+
+            <!-- ====== VIEW: Files ====== -->
+            <div id="view-files" class="view-content hidden">
+                <div class="filter-chips" id="fileFilterChips">
+                    <button class="chip active" data-filter="all">الكل</button>
+                    <button class="chip" data-filter="image">الصور</button>
+                    <button class="chip" data-filter="video">الفيديوهات</button>
+                    <button class="chip" data-filter="document">المستندات</button>
+                    <button class="chip" data-filter="trash">سلة المحذوفات</button>
+                </div>
+                <div class="file-toolbar">
+                    <span class="section-title"><i class="fas fa-folder-open"></i> جميع الملفات</span>
+                    <div class="view-options">
+                        <button class="active" data-viewmode="grid" title="شبكة"><i class="fas fa-grid-2"></i></button>
+                        <button data-viewmode="list" title="قائمة"><i class="fas fa-list"></i></button>
+                    </div>
+                </div>
+                <div class="files-grid" id="allFilesGrid"></div>
+            </div>
+
+            <!-- ====== VIEW: Favorites ====== -->
+            <div id="view-favorites" class="view-content hidden">
+                <div class="file-toolbar">
+                    <span class="section-title"><i class="fas fa-star"></i> المفضلة</span>
+                    <div class="view-options">
+                        <button class="active" data-viewmode="grid" title="شبكة"><i class="fas fa-grid-2"></i></button>
+                        <button data-viewmode="list" title="قائمة"><i class="fas fa-list"></i></button>
+                    </div>
+                </div>
+                <div class="files-grid" id="favGrid"></div>
+            </div>
+
+            <!-- ====== VIEW: Profile ====== -->
+            <div id="view-profile" class="view-content hidden">
+                <div class="settings-section" style="padding-bottom:16px;">
+                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                        <div class="profile-avatar-large" id="profileAvatar"><i class="fas fa-user"></i></div>
+                        <div class="profile-info">
+                            <h2 id="profileName">مستخدم</h2>
+                            <p id="profileEmail">user@email.com</p>
+                            <p class="meta"><i class="fas fa-id-card"></i> <span id="providerName">البريد الإلكتروني</span></p>
+                            <p class="meta"><i class="fas fa-calendar"></i> <span id="joinedDate">—</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h2><i class="fas fa-camera"></i> الصورة الشخصية</h2>
+                    <p style="color:var(--md-text-secondary);font-size:0.8rem;margin-bottom:12px;">تحميل صورة شخصية جديدة</p>
+                    <div class="upload-zone" id="profileUploadZone" style="padding:14px;margin-bottom:0;border-style:solid;border-width:1.5px;">
+                        <span style="font-size:1.4rem;color:var(--md-primary);"><i class="fas fa-cloud-arrow-up"></i></span>
+                        <p style="font-size:0.8rem;">انقر لتحميل صورة</p>
+                        <input type="file" id="profilePhotoInput" accept="image/*" />
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h2><i class="fas fa-sliders"></i> التفضيلات</h2>
+                    <div class="setting-row">
+                        <div><div class="setting-label"><i class="fas fa-moon" style="margin-left:8px;"></i>الوضع الداكن</div><div class="setting-desc">التبديل بين الوضع الفاتح والداكن</div></div>
+                        <button class="btn btn-outline btn-sm" id="settingsThemeToggle"><i class="fas fa-toggle-on"></i> تبديل</button>
+                    </div>
+                    <div class="setting-row">
+                        <div><div class="setting-label"><i class="fas fa-play" style="margin-left:8px;"></i>الرسوم المتحركة</div><div class="setting-desc">تمكين أو تعطيل الرسوم المتحركة</div></div>
+                        <button class="btn btn-outline btn-sm" id="settingsAnimToggle"><i class="fas fa-toggle-on"></i> تبديل</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h2><i class="fas fa-lock"></i> الحساب</h2>
+                    <div class="setting-row">
+                        <div><div class="setting-label"><i class="fas fa-right-from-bracket" style="margin-left:8px;"></i>تسجيل الخروج</div><div class="setting-desc">تسجيل الخروج من حسابك</div></div>
+                        <button class="btn btn-danger btn-sm" id="settingsLogout"><i class="fas fa-right-from-bracket"></i> تسجيل الخروج</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav" id="bottomNav">
+            <button class="nav-item active" data-tab="home"><i class="fas fa-home"></i><span>الرئيسية</span></button>
+            <button class="nav-item" data-tab="files"><i class="fas fa-folder"></i><span>ملفاتي</span><span class="nav-badge" id="navFileCount">0</span></button>
+            <button class="nav-item" data-tab="favorites"><i class="fas fa-star"></i><span>المفضلة</span></button>
+            <button class="nav-item" data-tab="profile"><i class="fas fa-user"></i><span>الملف الشخصي</span></button>
+        </nav>
+    </div>
+
+    <!-- ============================================================
+    PREVIEW MODAL (for images & videos)
+    ============================================================ -->
+    <div id="previewModal">
+        <button class="preview-close" id="previewClose"><i class="fas fa-times"></i></button>
+        <div class="preview-content" id="previewContent"></div>
+    </div>
+
+    <!-- ============================================================
+    RENAME MODAL
+    ============================================================ -->
+    <div id="renameModalOverlay">
+        <div class="rename-modal-card">
+            <div class="rename-modal-header">
+                <i class="fas fa-pen"></i>
+                <h3>إعادة تسمية الملف</h3>
+            </div>
+            <div class="rename-modal-sub">أعد تسمية ملفك أدناه.</div>
+            <div class="rename-modal-input-group">
+                <input type="text" id="renameInput" autofocus placeholder="أدخل الاسم الجديد" />
+                <div class="rename-error" id="renameError">اسم الملف غير صالح</div>
+            </div>
+            <div class="rename-modal-actions">
+                <button class="btn btn-outline btn-sm" id="renameCancelBtn">إلغاء</button>
+                <button class="btn btn-primary btn-sm" id="renameSaveBtn">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    GENERAL MODAL
+    ============================================================ -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <h2><i class="fas fa-triangle-exclamation"></i> <span id="modalTitle">تأكيد</span></h2>
+            <p id="modalBody">هل أنت متأكد؟</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline btn-sm" id="modalCancel"><i class="fas fa-times"></i> إلغاء</button>
+                <button class="btn btn-danger btn-sm" id="modalConfirm"><i class="fas fa-check"></i> تأكيد</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    TOAST CONTAINER
+    ============================================================ -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ============================================================
+    JAVASCRIPT
+    ============================================================ -->
+    <script>
+        // ============================================================
+        // CONFIG
+        // ============================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMqpPFdOOtfpFNhqT-heY-Hbdqmpc5udM",
+            authDomain: "zyrocloud-f7b44.firebaseapp.com",
+            projectId: "zyrocloud-f7b44",
+            storageBucket: "zyrocloud-f7b44.firebasestorage.app",
+            messagingSenderId: "40483484569",
+            appId: "1:40483484569:web:01e475d98889ca44a1d908",
+            measurementId: "G-DWV7DBRLEE"
+        };
+
+        const CLOUDINARY_CLOUD_NAME = 'rbaqqdpw';
+        const CLOUDINARY_UPLOAD_PRESET = 'zyro_upload';
+        const CLOUDINARY_UPLOAD_URL =
+            `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
+
+        // Delete token endpoint
+        const CLOUDINARY_DELETE_TOKEN_URL =
+            `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/delete_by_token`;
+
+        const MAX_FILE_SIZE = 100 * 1024 * 1024;
+        const STORAGE_LIMIT = 5 * 1024 * 1024 * 1024;
+
+        // ============================================================
+        // FIREBASE INIT
+        // ============================================================
+        const firebaseApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth(firebaseApp);
+        const db = firebase.firestore(firebaseApp);
+
+        db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        let currentUser = null;
+        let allFiles = [];
+        let currentTab = 'home';
+        let currentViewMode = 'grid';
+        let searchQuery = '';
+        let isDark = localStorage.getItem('zyro-theme') === 'dark';
+        let animationsEnabled = localStorage.getItem('zyro-animations') !== 'false';
+        let modalResolve = null;
+        let uploadInProgress = false;
+        let renameFileId = null;
+        let renameCurrentName = '';
+        let authResolved = false;
+        let fileFilter = 'all';
+        let activeUploadXhr = null;
+        let uploadCancelled = false;
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        const $ = id => document.getElementById(id);
+        const $$ = sel => document.querySelectorAll(sel);
+
+        const splashScreen = $('splashScreen');
+        const loginPage = $('loginPage');
+        const dashboardContainer = $('dashboardContainer');
+
+        const authError = $('authError');
+        const loginForm = $('loginForm');
+        const registerForm = $('registerForm');
+        const forgotForm = $('forgotForm');
+        const loginEmail = $('loginEmail');
+        const loginPassword = $('loginPassword');
+        const regName = $('regName');
+        const regEmail = $('regEmail');
+        const regPassword = $('regPassword');
+        const forgotEmail = $('forgotEmail');
+
+        const pageTitle = $('pageTitle');
+        const greetingName = $('greetingName');
+        const searchInput = $('searchInput');
+        const themeToggle = $('themeToggle');
+        const mainContent = $('mainContent');
+
+        const storageUsed = $('storageUsed');
+        const totalFiles = $('totalFiles');
+        const statImages = $('statImages');
+        const statVideos = $('statVideos');
+        const navFileCount = $('navFileCount');
+
+        const uploadZone = $('uploadZone');
+        const fileInput = $('fileInput');
+        const uploadProgress = $('uploadProgress');
+        const progressBar = $('progressBar');
+        const uploadStatus = $('uploadStatus');
+        const uploadCancelBtn = $('uploadCancelBtn');
+
+        const recentFilesGrid = $('recentFilesGrid');
+        const allFilesGrid = $('allFilesGrid');
+        const favGrid = $('favGrid');
+
+        const profileAvatar = $('profileAvatar');
+        const profileName = $('profileName');
+        const profileEmail = $('profileEmail');
+        const providerName = $('providerName');
+        const joinedDate = $('joinedDate');
+        const profilePhotoInput = $('profilePhotoInput');
+        const profileUploadZone = $('profileUploadZone');
+
+        const settingsThemeToggle = $('settingsThemeToggle');
+        const settingsAnimToggle = $('settingsAnimToggle');
+        const settingsLogout = $('settingsLogout');
+
+        const modalOverlay = $('modalOverlay');
+        const modalTitle = $('modalTitle');
+        const modalBody = $('modalBody');
+        const modalCancel = $('modalCancel');
+        const modalConfirm = $('modalConfirm');
+
+        const toastContainer = $('toastContainer');
+
+        const renameOverlay = $('renameModalOverlay');
+        const renameInput = $('renameInput');
+        const renameError = $('renameError');
+        const renameCancelBtn = $('renameCancelBtn');
+        const renameSaveBtn = $('renameSaveBtn');
+
+        const bottomNav = $('bottomNav');
+        const navItems = bottomNav.querySelectorAll('.nav-item');
+
+        const fileFilterChips = $('fileFilterChips');
+
+        const previewModal = $('previewModal');
+        const previewContent = $('previewContent');
+        const previewClose = $('previewClose');
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(message, type = 'info', duration = 3200) {
+            const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML =
+                `<span class="toast-icon"><i class="fas ${icons[type] || icons.info}"></i></span> ${escapeHtml(message)}`;
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px) scale(0.95)';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // ============================================================
+        // MODAL
+        // ============================================================
+        function showModal(title, body, confirmText = 'تأكيد', cancelText = 'إلغاء') {
+            return new Promise((resolve) => {
+                modalTitle.textContent = title;
+                modalBody.textContent = body;
+                modalConfirm.textContent = confirmText;
+                modalCancel.textContent = cancelText;
+                modalOverlay.classList.add('active');
+                modalResolve = resolve;
+            });
+        }
+
+        modalCancel.addEventListener('click', () => {
+            modalOverlay.classList.remove('active');
+            if (modalResolve) modalResolve(false);
+        });
+        modalConfirm.addEventListener('click', () => {
+            modalOverlay.classList.remove('active');
+            if (modalResolve) modalResolve(true);
+        });
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+                if (modalResolve) modalResolve(false);
+            }
+        });
+
+        // ============================================================
+        // PREVIEW MODAL
+        // ============================================================
+        function openPreview(url, type) {
+            previewContent.innerHTML = '';
+            if (type === 'image') {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = 'صورة';
+                previewContent.appendChild(img);
+            } else if (type === 'video') {
+                const video = document.createElement('video');
+                video.src = url;
+                video.controls = true;
+                video.autoplay = true;
+                video.style.maxWidth = '100%';
+                video.style.maxHeight = '90vh';
+                previewContent.appendChild(video);
+            }
+            previewModal.classList.add('active');
+        }
+
+        function closePreview() {
+            previewModal.classList.remove('active');
+            const video = previewContent.querySelector('video');
+            if (video) video.pause();
+            previewContent.innerHTML = '';
+        }
+
+        previewClose.addEventListener('click', closePreview);
+        previewModal.addEventListener('click', (e) => {
+            if (e.target === previewModal) closePreview();
+        });
+
+        // ============================================================
+        // AUTH
+        // ============================================================
+        function setAuthError(msg) {
+            if (msg) { authError.textContent = msg;
+                authError.classList.add('show'); } else { authError.classList.remove('show'); }
+        }
+
+        function showAuthForm(formId) {
+            [loginForm, registerForm, forgotForm].forEach(f => f.classList.add('hidden'));
+            $(formId).classList.remove('hidden');
+            setAuthError(null);
+        }
+
+        document.getElementById('showRegister').addEventListener('click', () => showAuthForm('registerForm'));
+        document.getElementById('showLogin').addEventListener('click', () => showAuthForm('loginForm'));
+        document.getElementById('backToLogin').addEventListener('click', () => showAuthForm('loginForm'));
+        document.getElementById('forgotLink').addEventListener('click', () => showAuthForm('forgotForm'));
+
+        async function signIn(email, password) {
+            try { setAuthError(null);
+                await auth.signInWithEmailAndPassword(email, password); return true; } catch (err) { setAuthError(err
+                    .message); return false; }
+        }
+
+        async function signUp(name, email, password) {
+            try {
+                setAuthError(null);
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                await cred.user.updateProfile({ displayName: name });
+                await db.collection('users').doc(cred.user.uid).set({
+                    displayName: name,
+                    email: email,
+                    photoURL: null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    provider: 'email'
+                }, { merge: true });
+                return true;
+            } catch (err) { setAuthError(err.message); return false; }
+        }
+
+        async function signInWithGoogle() {
+            try { setAuthError(null);
+                await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); return true; } catch (err) { setAuthError(
+                    err.message); return false; }
+        }
+
+        async function sendPasswordReset(email) {
+            try { setAuthError(null);
+                await auth.sendPasswordResetEmail(email);
+                showToast('تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني', 'success'); return true; } catch (err) { setAuthError(
+                    err.message); return false; }
+        }
+
+        async function signOut() { await auth.signOut(); }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = loginEmail.value.trim(),
+                password = loginPassword.value;
+            if (!email || !password) { setAuthError('يرجى ملء جميع الحقول'); return; }
+            if (await signIn(email, password)) showToast('مرحباً بعودتك!', 'success');
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = regName.value.trim(),
+                email = regEmail.value.trim(),
+                password = regPassword.value;
+            if (!name || !email || !password) { setAuthError('يرجى ملء جميع الحقول'); return; }
+            if (password.length < 6) { setAuthError('كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return; }
+            if (await signUp(name, email, password)) showToast('تم إنشاء الحساب! مرحباً بك في Zyro Cloud', 'success');
+        });
+
+        document.getElementById('googleBtn').addEventListener('click', async () => {
+            if (await signInWithGoogle()) showToast('مرحباً بعودتك!', 'success');
+        });
+        document.getElementById('googleBtnReg').addEventListener('click', async () => {
+            if (await signInWithGoogle()) showToast('مرحباً بعودتك!', 'success');
+        });
+
+        forgotForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = forgotEmail.value.trim();
+            if (!email) { setAuthError('يرجى إدخال بريدك الإلكتروني'); return; }
+            await sendPasswordReset(email);
+        });
+
+        // ============================================================
+        // CLOUDINARY UPLOAD
+        // ============================================================
+        const UPLOAD_TIMEOUT_MS = 120000;
+        const UPLOAD_MAX_RETRIES = 2;
+
+        function uploadToCloudinaryOnce(file, folder, onProgress) {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                if (folder) formData.append('folder', folder);
+
+                const xhr = new XMLHttpRequest();
+                activeUploadXhr = xhr;
+                xhr.open('POST', CLOUDINARY_UPLOAD_URL, true);
+                xhr.timeout = UPLOAD_TIMEOUT_MS;
+
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
+                });
+
+                xhr.addEventListener('load', () => {
+                    activeUploadXhr = null;
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try { resolve(JSON.parse(xhr.responseText)); } catch (e) {
+                            reject(new Error('استجابة غير صالحة من الخادم')); }
+                    } else {
+                        let message = `فشل الرفع (${xhr.status})`;
+                        try { const parsed = JSON.parse(xhr.responseText); if (parsed?.error?.message) message = parsed
+                                .error.message; } catch (_) {}
+                        const err = new Error(message);
+                        err.status = xhr.status;
+                        reject(err);
+                    }
+                });
+
+                xhr.addEventListener('error', () => {
+                    activeUploadXhr = null;
+                    reject(Object.assign(new Error('تعذر الاتصال بالخادم — تحقق من اتصال الإنترنت'), { network: true }));
+                });
+                xhr.addEventListener('timeout', () => {
+                    activeUploadXhr = null;
+                    reject(Object.assign(new Error('انتهت مهلة الرفع'), { network: true }));
+                });
+                xhr.addEventListener('abort', () => {
+                    activeUploadXhr = null;
+                    reject(Object.assign(new Error('تم إلغاء الرفع'), { cancelled: true }));
+                });
+
+                xhr.send(formData);
+            });
+        }
+
+        function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+        async function uploadToCloudinary(file, folder = 'zyro', onProgress) {
+            let lastErr;
+            for (let attempt = 0; attempt <= UPLOAD_MAX_RETRIES; attempt++) {
+                if (uploadCancelled) throw Object.assign(new Error('تم إلغاء الرفع'), { cancelled: true });
+                try {
+                    return await uploadToCloudinaryOnce(file, folder, onProgress);
+                } catch (err) {
+                    lastErr = err;
+                    if (err.cancelled) throw err;
+                    const retryable = err.network || (err.status && err.status >= 500);
+                    if (!retryable || attempt === UPLOAD_MAX_RETRIES) throw err;
+                    await sleep(600 * Math.pow(2, attempt));
+                }
+            }
+            throw lastErr;
+        }
+
+        function cancelUpload() {
+            uploadCancelled = true;
+            if (activeUploadXhr) activeUploadXhr.abort();
+        }
+
+        // ============================================================
+        // DELETE FROM CLOUDINARY USING DELETE TOKEN
+        // ============================================================
+        async function deleteFromCloudinary(deleteToken) {
+            if (!deleteToken) return false;
+            try {
+                const response = await fetch(CLOUDINARY_DELETE_TOKEN_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ delete_token: deleteToken })
+                });
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    console.warn('Cloudinary delete failed:', errData);
+                    return false;
+                }
+                const data = await response.json();
+                return data.result === 'ok';
+            } catch (err) {
+                console.warn('Cloudinary delete error:', err);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // FILE MANAGEMENT
+        // ============================================================
+        function getUserFilesRef() {
+            if (!currentUser) return null;
+            return db.collection('users').doc(currentUser.uid).collection('files');
+        }
+
+        async function loadFiles() {
+            if (!currentUser) return;
+            try {
+                const snapshot = await getUserFilesRef().orderBy('uploadDate', 'desc').get();
+                const firestoreFiles = [];
+                snapshot.forEach(doc => { firestoreFiles.push({ id: doc.id, ...doc.data() }); });
+                const localFiles = allFiles.filter(f => f._local === true && !f._deleted);
+                const ids = new Set(firestoreFiles.map(f => f.id));
+                const merged = [...firestoreFiles, ...localFiles.filter(f => !ids.has(f.id))];
+                merged.sort((a, b) => {
+                    const da = a.uploadDate ? (a.uploadDate.toDate ? a.uploadDate.toDate() : new Date(a
+                        .uploadDate)) : new Date(0);
+                    const db = b.uploadDate ? (b.uploadDate.toDate ? b.uploadDate.toDate() : new Date(b
+                        .uploadDate)) : new Date(0);
+                    return db - da;
+                });
+                allFiles = merged;
+                renderAll();
+            } catch (err) { console.error('Load files error:', err);
+                renderAll(); }
+        }
+
+        async function addFileMetadata(data) {
+            if (!currentUser) return null;
+            try {
+                const ref = getUserFilesRef();
+                const docRef = await ref.add({ ...data, uploadDate: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId: currentUser.uid });
+                return docRef.id;
+            } catch (err) { console.error('Add file error:', err); return null; }
+        }
+
+        async function updateFileMetadata(id, data) {
+            if (!currentUser) return;
+            try { await getUserFilesRef().doc(id).update(data); } catch (err) { console.error('Update error:', err);
+                showToast('فشل حفظ الملف', 'error'); }
+        }
+
+        async function deleteFileMetadata(id, permanent = false) {
+            if (!currentUser) return;
+            try {
+                const ref = getUserFilesRef().doc(id);
+                if (permanent) { await ref.delete(); } else { await ref.update({ isTrashed: true,
+                        trashedAt: firebase.firestore.FieldValue.serverTimestamp() }); }
+            } catch (err) { console.error('Delete error:', err);
+                showToast('فشل حذف الملف', 'error'); }
+        }
+
+        async function restoreFile(id) {
+            if (!currentUser) return;
+            try { await getUserFilesRef().doc(id).update({ isTrashed: false, trashedAt: null });
+                showToast('تم استعادة الملف', 'success'); } catch (err) { console.error('Restore error:', err);
+                showToast('فشل استعادة الملف', 'error'); }
+        }
+
+        async function toggleFavorite(id) {
+            if (!currentUser) return;
+            try {
+                const ref = getUserFilesRef().doc(id);
+                const doc = await ref.get();
+                if (doc.exists) { await ref.update({ isFavorite: !(doc.data().isFavorite || false) }); }
+            } catch (err) { console.error('Favorite error:', err);
+                showToast('فشل تحديث المفضلة', 'error'); }
+        }
+
+        async function renameFile(id, newName) {
+            if (!currentUser) return;
+            try { await getUserFilesRef().doc(id).update({ name: newName });
+                showToast('تم إعادة تسمية الملف بنجاح', 'success'); } catch (err) { console.error('Rename error:', err);
+                showToast('فشل إعادة تسمية الملف', 'error'); throw err; }
+        }
+
+        // PERMANENT DELETE: remove from Cloudinary then from Firestore
+        async function deletePermanently(id) {
+            if (!currentUser) return;
+            try {
+                // Get the file data to retrieve delete token
+                const file = allFiles.find(f => f.id === id);
+                if (file && file.deleteToken) {
+                    const deleted = await deleteFromCloudinary(file.deleteToken);
+                    if (deleted) {
+                        showToast('تم حذف الملف من السحابة', 'success');
+                    } else {
+                        showToast('تم حذف الملف محلياً، لكن فشل حذفه من السحابة', 'warning');
+                    }
+                } else {
+                    // If no delete token, just remove Firestore record (older files)
+                    console.warn('No delete token found for file:', id);
+                }
+                // Always delete Firestore document
+                await getUserFilesRef().doc(id).delete();
+                // Remove from local array
+                allFiles = allFiles.filter(f => f.id !== id);
+                renderAll();
+                showToast('تم حذف الملف نهائياً', 'success');
+            } catch (err) {
+                console.error('Permanent delete error:', err);
+                showToast('فشل حذف الملف نهائياً: ' + err.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // RENAME MODAL
+        // ============================================================
+        function openRenameModal(id, currentName) {
+            renameFileId = id;
+            renameCurrentName = currentName;
+            renameInput.value = currentName;
+            renameInput.select();
+            renameError.classList.remove('show');
+            renameSaveBtn.disabled = false;
+            renameSaveBtn.innerHTML = `<i class="fas fa-check"></i> حفظ`;
+            renameOverlay.classList.add('active');
+            renameInput.focus();
+        }
+
+        function closeRenameModal() {
+            renameOverlay.classList.remove('active');
+            renameFileId = null;
+            renameCurrentName = '';
+            renameError.classList.remove('show');
+            renameSaveBtn.disabled = false;
+            renameSaveBtn.innerHTML = `<i class="fas fa-check"></i> حفظ`;
+        }
+
+        async function saveRename() {
+            const newName = renameInput.value.trim();
+            if (!newName) { renameError.textContent = 'اسم الملف لا يمكن أن يكون فارغاً';
+                renameError.classList.add('show'); return; }
+            if (/[\/\\:\*\?"<>\|]/.test(newName)) { renameError.textContent = 'يحتوي اسم الملف على أحرف غير صالحة';
+                renameError.classList.add('show'); return; }
+            if (newName === renameCurrentName) { closeRenameModal(); return; }
+            renameSaveBtn.disabled = true;
+            renameSaveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...`;
+            renameError.classList.remove('show');
+            try {
+                const file = allFiles.find(f => f.id === renameFileId);
+                if (file) { file.name = newName;
+                    renderAll(); }
+                await renameFile(renameFileId, newName);
+                closeRenameModal();
+                await loadFiles();
+            } catch (err) {
+                const file = allFiles.find(f => f.id === renameFileId);
+                if (file) { file.name = renameCurrentName;
+                    renderAll(); }
+                renameSaveBtn.disabled = false;
+                renameSaveBtn.innerHTML = `<i class="fas fa-check"></i> حفظ`;
+            }
+        }
+
+        renameCancelBtn.addEventListener('click', closeRenameModal);
+        renameOverlay.addEventListener('click', (e) => { if (e.target === renameOverlay) closeRenameModal(); });
+        renameSaveBtn.addEventListener('click', saveRename);
+        renameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault();
+                saveRename(); } else if (e.key === 'Escape') { e.preventDefault();
+                closeRenameModal(); }
+        });
+        renameInput.addEventListener('input', () => { renameError.classList.remove('show'); });
+
+        // ============================================================
+        // RENDER HELPERS
+        // ============================================================
+        function getFileType(mime) {
+            if (!mime) return 'other';
+            if (mime.startsWith('image/')) return 'image';
+            if (mime.startsWith('video/')) return 'video';
+            if (mime.startsWith('audio/')) return 'audio';
+            if (mime.includes('pdf')) return 'pdf';
+            if (mime.includes('text') || mime.includes('document') || mime.includes('spreadsheet') || mime.includes(
+                    'presentation')) return 'document';
+            return 'other';
+        }
+
+        function getFileIconClass(mime) {
+            const map = { image: 'fa-image', video: 'fa-video', audio: 'fa-music', pdf: 'fa-file-pdf',
+                document: 'fa-file-lines', other: 'fa-file' };
+            return map[getFileType(mime)] || 'fa-file';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+            return (bytes / 1073741824).toFixed(2) + ' GB';
+        }
+
+        function formatDate(ts) {
+            if (!ts) return '—';
+            const d = ts.toDate ? ts.toDate() : new Date(ts);
+            return d.toLocaleDateString('ar-EG') + ' ' + d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function getFilteredFiles(view) {
+            let files = [...allFiles].filter(f => !f._deleted);
+            switch (view) {
+                case 'home':
+                    files = files.filter(f => !f.isTrashed);
+                    break;
+                case 'files':
+                    files = files.filter(f => !f.isTrashed);
+                    break;
+                case 'favorites':
+                    files = files.filter(f => !f.isTrashed && f.isFavorite === true);
+                    break;
+                default:
+                    files = files.filter(f => !f.isTrashed);
+            }
+            if (view === 'files' && fileFilter !== 'all') {
+                if (fileFilter === 'trash') {
+                    files = allFiles.filter(f => f.isTrashed === true);
+                } else {
+                    files = files.filter(f => f.type === fileFilter || (fileFilter === 'document' && (f.type === 'pdf' || f
+                        .type === 'other')));
+                }
+            }
+            if (searchQuery.trim()) {
+                const q = searchQuery.trim().toLowerCase();
+                files = files.filter(f => (f.name || '').toLowerCase().includes(q));
+            }
+            return files;
+        }
+
+        // ============================================================
+        // RENDER
+        // ============================================================
+        function renderFiles(grid, files, viewMode = currentViewMode) {
+            if (!grid) return;
+            grid.innerHTML = '';
+            grid.className = `files-grid ${viewMode === 'list' ? 'list-view' : ''}`;
+            if (files.length === 0) {
+                grid.innerHTML =
+                    `<div class="empty-state"><span class="empty-icon"><i class="fas fa-folder-open"></i></span><h3>لا توجد ملفات هنا</h3><p>قم برفع ملفك الأول للبدء</p></div>`;
+                return;
+            }
+            files.forEach((file, index) => {
+                const isImage = file.type === 'image';
+                const isVideo = file.type === 'video';
+                const isAudio = file.type === 'audio';
+                const isPdf = file.type === 'pdf';
+                const iconClass = getFileIconClass(file.mimeType || file.type);
+                const card = document.createElement('div');
+                card.className = `file-card ${viewMode === 'list' ? 'list-item' : ''}`;
+                card.style.animationDelay = `${(index % 20) * 20}ms`;
+                card.dataset.fileId = file.id;
+                const safeName = escapeHtml(file.name || 'بدون اسم');
+                const safeUrl = escapeHtml(file.url || '');
+                let previewHtml = '';
+                if (isImage && file.url) previewHtml =
+                    `<img src="${safeUrl}" alt="${safeName}" class="file-preview" loading="lazy" />`;
+                else if (isVideo && file.url) previewHtml =
+                    `<video src="${safeUrl}" class="file-preview" muted preload="metadata"></video>`;
+                else if (isAudio && file.url) previewHtml =
+                    `<audio src="${safeUrl}" controls class="file-preview audio-preview" preload="none"></audio>`;
+                else if (isPdf && file.url) previewHtml =
+                    `<embed src="${safeUrl}" type="application/pdf" class="file-preview" style="aspect-ratio:16/10;" />`;
+                const isFav = file.isFavorite === true;
+                const isLocal = file._local === true;
+                const isTrashed = file.isTrashed === true;
+
+                if (viewMode === 'list') {
+                    card.innerHTML = `
+                        ${previewHtml ? `<div class="file-preview" style="width:40px;height:40px;aspect-ratio:1;flex-shrink:0;border-radius:var(--md-radius-xs);overflow:hidden;">${previewHtml}</div>` : `<span class="file-icon"><i class="fas ${iconClass}"></i></span>`}
+                        <div class="file-info"><div class="file-name" title="${safeName}">${safeName}${isLocal ? ' <span style="font-size:0.5rem;color:var(--md-text-secondary);">(محلي)</span>' : ''}</div><div class="file-meta">${formatFileSize(file.size || 0)} · ${formatDate(file.uploadDate)}</div></div>
+                        <div class="file-actions">
+                            ${file.url ? `<button class="download-btn" data-url="${safeUrl}" data-name="${safeName}" title="تحميل"><i class="fas fa-download"></i></button>` : ''}
+                            <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${file.id}" title="المفضلة"><i class="fas fa-star"></i></button>
+                            <button class="rename-btn" data-id="${file.id}" data-name="${safeName}" title="إعادة تسمية"><i class="fas fa-pen"></i></button>
+                            ${isTrashed ? 
+                                `<button class="restore-btn" data-id="${file.id}" title="استعادة"><i class="fas fa-rotate-left"></i></button>
+                                 <button class="del-permanent-btn" data-id="${file.id}" title="حذف نهائي"><i class="fas fa-trash-can"></i></button>` :
+                                `<button class="trash-btn" data-id="${file.id}" title="نقل إلى سلة المحذوفات"><i class="fas fa-trash-can"></i></button>`
+                            }
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        ${previewHtml ? previewHtml : `<span class="file-icon"><i class="fas ${iconClass}"></i></span>`}
+                        <div class="file-name" title="${safeName}">${safeName}${isLocal ? ' <span style="font-size:0.5rem;color:var(--md-text-secondary);">(محلي)</span>' : ''}</div>
+                        <div class="file-meta">${formatFileSize(file.size || 0)}</div>
+                        <div class="file-actions">
+                            ${file.url ? `<button class="download-btn" data-url="${safeUrl}" data-name="${safeName}" title="تحميل"><i class="fas fa-download"></i></button>` : ''}
+                            <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${file.id}" title="المفضلة"><i class="fas fa-star"></i></button>
+                            <button class="rename-btn" data-id="${file.id}" data-name="${safeName}" title="إعادة تسمية"><i class="fas fa-pen"></i></button>
+                            ${isTrashed ? 
+                                `<button class="restore-btn" data-id="${file.id}" title="استعادة"><i class="fas fa-rotate-left"></i></button>
+                                 <button class="del-permanent-btn" data-id="${file.id}" title="حذف نهائي"><i class="fas fa-trash-can"></i></button>` :
+                                `<button class="trash-btn" data-id="${file.id}" title="نقل إلى سلة المحذوفات"><i class="fas fa-trash-can"></i></button>`
+                            }
+                        </div>
+                    `;
+                }
+
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('.file-actions')) return;
+                    if (!file.url) return;
+                    const url = file.url;
+                    const mime = file.mimeType || '';
+                    const type = getFileType(mime);
+                    if (type === 'image') {
+                        openPreview(url, 'image');
+                    } else if (type === 'video') {
+                        openPreview(url, 'video');
+                    } else {
+                        window.open(url, '_blank');
+                    }
+                });
+
+                grid.appendChild(card);
+            });
+
+            grid.querySelectorAll('.download-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const url = btn.dataset.url,
+                        name = btn.dataset.name;
+                    if (url) { const a = document.createElement('a');
+                        a.href = url;
+                        a.download = name || 'download';
+                        a.target = '_blank';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a); }
+                });
+            });
+            grid.querySelectorAll('.fav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    const file = allFiles.find(f => f.id === id);
+                    if (file) { file.isFavorite = !file.isFavorite;
+                        renderAll(); }
+                    toggleFavorite(id);
+                    setTimeout(loadFiles, 300);
+                });
+            });
+            grid.querySelectorAll('.rename-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openRenameModal(btn.dataset.id, btn.dataset.name);
+                });
+            });
+            grid.querySelectorAll('.trash-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    showModal('نقل إلى سلة المحذوفات', 'هل أنت متأكد من نقل هذا الملف إلى سلة المحذوفات؟',
+                        'نقل', 'إلغاء').then(async (confirmed) => {
+                        if (confirmed) {
+                            const file = allFiles.find(f => f.id === id);
+                            if (file) { file.isTrashed = true;
+                                renderAll(); }
+                            await deleteFileMetadata(id);
+                            showToast('تم نقل الملف إلى سلة المحذوفات', 'success');
+                            await loadFiles();
+                        }
+                    });
+                });
+            });
+            grid.querySelectorAll('.restore-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    const file = allFiles.find(f => f.id === id);
+                    if (file) { file.isTrashed = false;
+                        renderAll(); }
+                    restoreFile(id);
+                    setTimeout(loadFiles, 300);
+                });
+            });
+            grid.querySelectorAll('.del-permanent-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    showModal('حذف نهائي', 'سيتم حذف الملف نهائياً من السحابة. هل أنت متأكد؟', 'حذف', 'إلغاء')
+                        .then(async (confirmed) => {
+                            if (confirmed) {
+                                const file = allFiles.find(f => f.id === id);
+                                if (file) file._deleted = true;
+                                await deletePermanently(id);
+                                renderAll();
+                            }
+                        });
+                });
+            });
+        }
+
+        function renderStats() {
+            const active = allFiles.filter(f => !f.isTrashed && !f._deleted);
+            const images = active.filter(f => f.type === 'image');
+            const videos = active.filter(f => f.type === 'video');
+            const totalSize = active.reduce((sum, f) => sum + (f.size || 0), 0);
+            storageUsed.textContent = formatFileSize(totalSize);
+            totalFiles.textContent = active.length;
+            statImages.textContent = images.length;
+            statVideos.textContent = videos.length;
+            navFileCount.textContent = active.length;
+        }
+
+        function renderAll() {
+            renderStats();
+            const recent = getFilteredFiles('home').slice(0, 12);
+            renderFiles(recentFilesGrid, recent);
+            const filesData = getFilteredFiles('files');
+            renderFiles(allFilesGrid, filesData);
+            const favData = getFilteredFiles('favorites');
+            renderFiles(favGrid, favData);
+            updateSidebarUser();
+            updateProfileView();
+            updatePageTitle();
+        }
+
+        function updateSidebarUser() {
+            if (currentUser) {
+                const name = currentUser.displayName || 'مستخدم',
+                    email = currentUser.email || '';
+                greetingName.textContent = `مرحباً، ${name}`;
+                if (currentUser.photoURL) {
+                    const av = document.querySelector('.profile-avatar-large');
+                    if (av) av.innerHTML = `<img src="${escapeHtml(currentUser.photoURL)}" alt="${escapeHtml(name)}" />`;
+                }
+            }
+        }
+
+        function updateProfileView() {
+            if (currentUser) {
+                const name = currentUser.displayName || 'مستخدم',
+                    email = currentUser.email || '';
+                profileName.textContent = name;
+                profileEmail.textContent = email;
+                if (currentUser.photoURL) {
+                    profileAvatar.innerHTML = `<img src="${escapeHtml(currentUser.photoURL)}" alt="${escapeHtml(name)}" />`;
+                } else {
+                    profileAvatar.innerHTML = `<i class="fas fa-user"></i>`;
+                    profileAvatar.style.background = 'linear-gradient(135deg, var(--md-primary), #4FC3F7)';
+                    profileAvatar.style.color = '#fff';
+                }
+                const provider = currentUser.providerData?.[0]?.providerId || 'email';
+                providerName.textContent = provider === 'google.com' ? 'Google' : 'البريد الإلكتروني';
+                db.collection('users').doc(currentUser.uid).get().then(doc => {
+                    if (doc.exists && doc.data().createdAt) joinedDate.textContent = formatDate(doc.data()
+                        .createdAt);
+                }).catch(() => {});
+            }
+        }
+
+        function updatePageTitle() {
+            const titles = { home: 'لوحة التحكم', files: 'ملفاتي', favorites: 'المفضلة', profile: 'الملف الشخصي' };
+            pageTitle.textContent = titles[currentTab] || 'لوحة التحكم';
+        }
+
+        // ============================================================
+        // UPLOAD
+        // ============================================================
+        async function handleUpload(files) {
+            if (!currentUser) { showToast('يرجى تسجيل الدخول أولاً', 'error'); return; }
+            if (uploadInProgress) { showToast('جاري رفع الملفات بالفعل', 'info'); return; }
+            uploadInProgress = true;
+            uploadCancelled = false;
+            if (uploadCancelBtn) uploadCancelBtn.classList.remove('hidden');
+            const active = allFiles.filter(f => !f.isTrashed && !f._deleted);
+            const totalSize = active.reduce((sum, f) => sum + (f.size || 0), 0);
+            let uploaded = 0,
+                failed = 0,
+                total = files.length;
+            uploadProgress.classList.add('show');
+            uploadStatus.classList.add('show');
+            uploadStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري الرفع...`;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (uploadCancelled) { showToast('تم إلغاء رفع الملفات المتبقية', 'info'); break; }
+                try {
+                    if (file.size > MAX_FILE_SIZE) { showToast(`${file.name} يتجاوز حد 100 ميجابايت`, 'error');
+                        failed++; continue; }
+                    if (totalSize + file.size > STORAGE_LIMIT) { showToast('تم تجاوز حد التخزين (5 جيجابايت)',
+                        'error'); break; }
+                    uploadStatus.textContent = `جاري رفع ${file.name} (${i + 1}/${total})... 0%`;
+                    const result = await uploadToCloudinary(file, `zyro/${currentUser.uid}`, (fraction) => {
+                        const pct = Math.round(fraction * 100);
+                        uploadStatus.textContent = `جاري رفع ${file.name} (${i + 1}/${total})... ${pct}%`;
+                        const perFileShare = 1 / total;
+                        const overall = ((i + fraction) * perFileShare) * 100;
+                        progressBar.style.width = Math.min(100, overall) + '%';
+                    });
+                    // Store delete token if available
+                    const deleteToken = result.delete_token || null;
+                    const existing = allFiles.find(f => f.publicId === result.public_id);
+                    if (existing) {
+                        existing.url = result.secure_url;
+                        existing.size = file.size;
+                        existing.mimeType = file.type;
+                        existing.type = getFileType(file.type);
+                        existing.uploadDate = new Date();
+                        existing._local = false;
+                        existing.deleteToken = deleteToken;
+                        try { await updateFileMetadata(existing.id, { url: result.secure_url, size: file.size,
+                                mimeType: file.type, type: getFileType(file.type), deleteToken: deleteToken }); } catch (
+                        _) {}
+                        renderAll();
+                        uploaded++;
+                        continue;
+                    }
+                    const localId = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    const fileData = { id: localId, name: file.name, url: result.secure_url, publicId: result
+                            .public_id, size: file.size, mimeType: file.type, type: getFileType(file.type),
+                        isFavorite: false, isTrashed: false, uploadDate: new Date(), _local: true,
+                        deleteToken: deleteToken };
+                    allFiles.unshift(fileData);
+                    renderAll();
+                    uploaded++;
+                    progressBar.style.width = Math.min(100, ((uploaded + failed) / total) * 100) + '%';
+                    const firestoreData = { name: file.name, url: result.secure_url, publicId: result
+                            .public_id, size: file.size, mimeType: file.type, type: getFileType(file.type),
+                        isFavorite: false, isTrashed: false, deleteToken: deleteToken };
+                    (async () => {
+                        try {
+                            const docId = await addFileMetadata(firestoreData);
+                            if (docId) { const localFile = allFiles.find(f => f.id === localId); if (localFile) { localFile
+                                        .id = docId;
+                                    localFile._local = false;
+                                    renderAll(); } }
+                        } catch (err) { console.error('Firestore save failed:', err); }
+                    })();
+                } catch (err) {
+                    if (err.cancelled) { showToast('تم إلغاء الرفع', 'info'); break; }
+                    console.error('Upload error:', err);
+                    showToast(`فشل رفع ${file.name}: ${err.message}`, 'error');
+                    failed++;
+                } finally {
+                    progressBar.style.width = Math.min(100, ((uploaded + failed) / total) * 100) + '%';
+                }
+            }
+            setTimeout(() => {
+                uploadProgress.classList.remove('show');
+                uploadStatus.classList.remove('show');
+                progressBar.style.width = '0%';
+                uploadInProgress = false;
+                uploadCancelled = false;
+                if (uploadCancelBtn) uploadCancelBtn.classList.add('hidden');
+            }, 800);
+            if (uploaded > 0) { showToast(`تم رفع ${uploaded} ملف(ات) بنجاح`, 'success');
+                await loadFiles(); }
+            if (failed > 0) showToast(`فشل رفع ${failed} ملف(ات)`, 'error');
+        }
+
+        // ============================================================
+        // NAVIGATION
+        // ============================================================
+        function switchTab(tab) {
+            currentTab = tab;
+            navItems.forEach(item => {
+                item.classList.toggle('active', item.dataset.tab === tab);
+            });
+            document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById(`view-${tab}`);
+            if (target) target.classList.remove('hidden');
+            if (mainContent) mainContent.scrollTop = 0;
+            renderAll();
+        }
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                switchTab(item.dataset.tab);
+            });
+        });
+
+        // ============================================================
+        // THEME / ANIMATIONS
+        // ============================================================
+        function toggleTheme() {
+            isDark = !isDark;
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            localStorage.setItem('zyro-theme', isDark ? 'dark' : 'light');
+            themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+
+        function toggleAnimations() {
+            animationsEnabled = !animationsEnabled;
+            localStorage.setItem('zyro-animations', animationsEnabled ? 'true' : 'false');
+            document.querySelectorAll(
+                '.file-card, .stat-card, .modal-box, .toast, .rename-modal-card, .view-content'
+            ).forEach(el => {
+                el.style.animation = animationsEnabled ? '' : 'none';
+                el.style.transition = animationsEnabled ? '' : 'none';
+            });
+            showToast(animationsEnabled ? 'تم تمكين الرسوم المتحركة' : 'تم تعطيل الرسوم المتحركة', 'info');
+        }
+
+        // ============================================================
+        // EVENT BINDINGS
+        // ============================================================
+        themeToggle.addEventListener('click', toggleTheme);
+        settingsThemeToggle.addEventListener('click', toggleTheme);
+        settingsAnimToggle.addEventListener('click', toggleAnimations);
+
+        ['logoutBtn', 'settingsLogout'].forEach(id => {
+            const btn = $(id);
+            if (btn) {
+                btn.addEventListener('click', async () => {
+                    if (await showModal('تسجيل الخروج', 'هل أنت متأكد من تسجيل الخروج؟', 'تسجيل الخروج',
+                        'إلغاء')) await signOut();
+                });
+            }
+        });
+
+        document.querySelectorAll('[data-viewmode]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const parent = btn.closest('.file-toolbar');
+                if (parent) {
+                    parent.querySelectorAll('[data-viewmode]').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentViewMode = btn.dataset.viewmode;
+                    renderAll();
+                }
+            });
+        });
+
+        searchInput.addEventListener('input', () => { searchQuery = searchInput.value;
+            renderAll(); });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length && !uploadInProgress) { handleUpload(e.target.files);
+                e.target.value = ''; }
+        });
+
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault();
+            uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => { uploadZone.classList.remove('dragover'); });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length && !uploadInProgress) handleUpload(e.dataTransfer.files);
+        });
+
+        if (uploadCancelBtn) {
+            uploadCancelBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                cancelUpload();
+            });
+        }
+
+        profilePhotoInput.addEventListener('change', async (e) => {
+            if (!currentUser) return;
+            const file = e.target.files[0];
+            if (!file || !file.type.startsWith('image/')) { showToast('يرجى اختيار صورة', 'error'); return; }
+            try {
+                const result = await uploadToCloudinary(file, `zyro/${currentUser.uid}/profile`);
+                await currentUser.updateProfile({ photoURL: result.secure_url });
+                await db.collection('users').doc(currentUser.uid).update({ photoURL: result.secure_url });
+                showToast('تم تحديث الصورة الشخصية!', 'success');
+                updateSidebarUser();
+                updateProfileView();
+            } catch (err) { showToast('فشل تحميل الصورة: ' + err.message, 'error'); }
+            e.target.value = '';
+        });
+
+        profileUploadZone.addEventListener('click', () => profilePhotoInput.click());
+
+        if (fileFilterChips) {
+            fileFilterChips.querySelectorAll('.chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    fileFilterChips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    fileFilter = chip.dataset.filter;
+                    renderAll();
+                });
+            });
+        }
+
+        // ============================================================
+        // AUTH STATE
+        // ============================================================
+        auth.onAuthStateChanged(async (user) => {
+            authResolved = true;
+            if (user) {
+                currentUser = user;
+                try {
+                    const doc = await db.collection('users').doc(user.uid).get();
+                    if (!doc.exists) {
+                        await db.collection('users').doc(user.uid).set({
+                            displayName: user.displayName || 'مستخدم',
+                            email: user.email || '',
+                            photoURL: user.photoURL || null,
+                            provider: user.providerData?.[0]?.providerId || 'email',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                    }
+                } catch (err) { console.warn('User doc sync:', err); }
+                await loadFiles();
+                if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
+                else document.documentElement.removeAttribute('data-theme');
+                themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+
+                splashScreen.classList.add('hide');
+                loginPage.classList.remove('active');
+                dashboardContainer.classList.add('active');
+                switchTab('home');
+            } else {
+                currentUser = null;
+                allFiles = [];
+                dashboardContainer.classList.remove('active');
+                splashScreen.classList.add('hide');
+                loginPage.classList.add('active');
+                uploadInProgress = false;
+                closeRenameModal();
+                showAuthForm('loginForm');
+            }
+        });
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        if (isDark) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        }
+
+        console.log('☁️ Zyro Cloud — Native Android App with Cloudinary delete support');
+        console.log('🔥 Firebase ready | ☁️ Cloudinary ready');
+    </script>
+</body>
+</html>
